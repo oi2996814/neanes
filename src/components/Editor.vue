@@ -2,27 +2,32 @@
   <div class="editor">
     <MainToolbar
       :entryMode="entryMode"
-      @addAutoMartyria="addAutoMartyria"
-      @updateEntryMode="updateEntryMode"
-      @updatePageBreak="updatePageBreak"
-      @updateLineBreak="updateLineBreak"
-      @updateTempo="updateTempo"
-      @deleteSelectedElement="deleteSelectedElement"
+      :zoom="zoom"
+      :zoomToFit="zoomToFit"
+      @update:zoom="updateZoom"
+      @update:zoomToFit="updateZoomToFit"
+      @add-auto-martyria="addAutoMartyria"
+      @update:entryMode="updateEntryMode"
+      @toggle-page-break="togglePageBreak"
+      @toggle-line-break="toggleLineBreak"
+      @add-tempo="addTempo"
+      @add-drop-cap="addDropCap"
+      @delete-selected-element="deleteSelectedElement"
+      @click.native="selectedLyrics = null"
     />
     <div class="content">
       <NeumeSelector
         class="neume-selector"
-        @select-quantitative-neume="updateQuantitativeNeume"
+        @select-quantitative-neume="addQuantitativeNeume"
       ></NeumeSelector>
-      <div class="page-background">
+      <div class="page-background" ref="page-background">
         <div
           class="page"
+          :style="pageStyle"
           v-for="(page, pageIndex) in pages"
           :key="`page-${pageIndex}`"
           :ref="`page-${pageIndex}`"
         >
-          <!-- <div class="mode-header red martyria">hWt</div> -->
-
           <div
             class="line"
             v-for="(line, lineIndex) in page.lines"
@@ -33,78 +38,65 @@
               v-for="(element, index) in line.elements"
               :key="`lineElement-${pageIndex}-${lineIndex}-${index}`"
               class="element-box"
-              :style="{ left: element.x + 'px', top: element.y + 'px' }"
+              :style="getElementStyle(element)"
             >
               <template v-if="isSyllableElement(element)">
                 <div
                   :ref="`element-${getElementIndex(element)}`"
                   class="neume-box"
                 >
-                  <span
-                    class="page-break"
-                    v-if="element.pageBreak"
-                    style="position: absolute; top: -10px"
-                    >P</span
-                  >
-                  <span
-                    class="line-break"
-                    v-if="element.lineBreak"
-                    style="position: absolute; top: -10px"
-                    >L</span
+                  <span class="page-break" v-if="element.pageBreak"
+                    ><img src="@/assets/pagebreak.svg"
+                  /></span>
+                  <span class="line-break" v-if="element.lineBreak"
+                    >&#182;</span
                   >
                   <SyllableNeumeBox
                     class="syllable-box"
                     :note="element"
+                    :pageSetup="score.pageSetup"
                     :class="[{ selected: element == selectedElement }]"
                     @click.native="selectedElement = element"
                   ></SyllableNeumeBox>
                   <div
                     class="lyrics-container"
-                    :style="{
-                      top: score.pageSetup.lyricsVerticalOffset + 'px',
-                    }"
-                    @click="selectedElement = null"
+                    :key="`lyrics-${getElementIndex(element)}-${
+                      element.keyHelper
+                    }`"
+                    :style="getLyricStyle(element)"
+                    @click="focusLyrics(getElementIndex(element))"
                   >
                     <ContentEditable
                       class="lyrics"
                       :content="element.lyrics"
-                      @click.native="selectedElement = null"
+                      :ref="`lyrics-${getElementIndex(element)}`"
+                      @focus.native="selectedLyrics = element"
                       @blur="updateLyrics(element, $event)"
                     ></ContentEditable>
                     <template v-if="isMelisma(element)">
-                      <template v-if="element.melismaOffsetLeft">
-                        <div
-                          class="melisma full"
-                          :style="{ left: element.melismaOffsetLeft + 'px' }"
-                        >
-                          {{ element.melismaText }}
-                        </div>
-                      </template>
-                      <template v-else>
-                        <div class="melisma" v-if="isMelisma(element)">
-                          {{ element.melismaText }}
-                        </div>
-                      </template>
+                      <div
+                        class="melisma"
+                        :class="{ full: element.isFullMelisma }"
+                        :style="getMelismaStyle(element)"
+                        v-text="element.melismaText"
+                      ></div>
                     </template>
                   </div>
                 </div>
               </template>
               <template v-if="isMartyriaElement(element)">
                 <div class="neume-box">
-                  <span
-                    v-if="element.pageBreak"
-                    style="position: absolute; top: -10px"
-                    >P</span
-                  >
-                  <span
-                    v-if="element.lineBreak"
-                    style="position: absolute; top: -10px"
-                    >L</span
+                  <span class="page-break" v-if="element.pageBreak">
+                    ><img src="@/assets/pagebreak.svg"
+                  /></span>
+                  <span class="line-break" v-if="element.lineBreak"
+                    >&#182;</span
                   >
                   <MartyriaNeumeBox
                     :ref="`element-${getElementIndex(element)}`"
                     class="marytria-neume-box"
                     :neume="element"
+                    :pageSetup="score.pageSetup"
                     :class="[{ selected: element == selectedElement }]"
                     @click.native="selectedElement = element"
                   ></MartyriaNeumeBox>
@@ -116,19 +108,16 @@
                   :ref="`element-${getElementIndex(element)}`"
                   class="neume-box"
                 >
-                  <span
-                    v-if="element.pageBreak"
-                    style="position: absolute; top: -10px"
-                    >P</span
-                  >
-                  <span
-                    v-if="element.lineBreak"
-                    style="position: absolute; top: -10px"
-                    >L</span
+                  <span class="page-break" v-if="element.pageBreak">
+                    ><img src="@/assets/pagebreak.svg"
+                  /></span>
+                  <span class="line-break" v-if="element.lineBreak"
+                    >&#182;</span
                   >
                   <TempoNeumeBox
                     class="tempo-neume-box"
                     :neume="element"
+                    :pageSetup="score.pageSetup"
                     :class="[{ selected: element == selectedElement }]"
                     @click.native="selectedElement = element"
                   ></TempoNeumeBox>
@@ -140,58 +129,71 @@
                   :ref="`element-${getElementIndex(element)}`"
                   class="neume-box"
                 >
-                  <span
-                    v-if="element.pageBreak"
-                    style="position: absolute; top: -10px"
-                    >P</span
-                  >
-                  <span
-                    v-if="element.lineBreak"
-                    style="position: absolute; top: -10px"
-                    >L</span
+                  <span class="page-break" v-if="element.pageBreak">
+                    ><img src="@/assets/pagebreak.svg"
+                  /></span>
+                  <span class="line-break" v-if="element.lineBreak"
+                    >&#182;</span
                   >
                   <div
                     class="empty-neume-box"
                     :class="[{ selected: element == selectedElement }]"
+                    :style="getEmptyBoxStyle(element)"
                     @click="selectedElement = element"
                   ></div>
                   <div class="lyrics"></div>
                 </div>
               </template>
               <template v-if="isTextBoxElement(element)">
+                <span class="page-break-2" v-if="element.pageBreak"
+                  ><img src="@/assets/pagebreak.svg"
+                /></span>
+                <span class="line-break-2" v-if="element.lineBreak"
+                  >&#182;</span
+                >
                 <TextBox
                   :ref="`element-${getElementIndex(element)}`"
                   :element="element"
+                  :pageSetup="score.pageSetup"
                   :class="[{ selectedTextbox: element == selectedElement }]"
                   @click.native="selectedElement = element"
-                  @scoreUpdated="onScoreUpdated"
+                  @update:content="updateTextBoxContent(element, $event)"
                 >
                 </TextBox>
               </template>
               <template v-if="isModeKeyElement(element)">
+                <span class="page-break-2" v-if="element.pageBreak"
+                  ><img src="@/assets/pagebreak.svg"
+                /></span>
+                <span class="line-break-2" v-if="element.lineBreak"
+                  >&#182;</span
+                >
                 <ModeKey
                   :ref="`element-${getElementIndex(element)}`"
                   :element="element"
+                  :pageSetup="score.pageSetup"
                   :class="[{ selectedTextbox: element == selectedElement }]"
                   @click.native="selectedElement = element"
                   @dblclick.native="openModeKeyDialog"
-                  @scoreUpdated="onScoreUpdated"
                 >
                 </ModeKey>
               </template>
-              <template v-if="isStaffTextElement(element)">
-                <StaffText
-                  :ref="`element-${getElementIndex(element)}`"
-                  :element="element"
-                >
-                </StaffText>
-              </template>
               <template v-if="isDropCapElement(element)">
+                <span class="page-break" v-if="element.pageBreak"
+                  ><img src="@/assets/pagebreak.svg"
+                /></span>
+                <span class="line-break" v-if="element.lineBreak">&#182;</span>
                 <DropCap
                   :ref="`element-${getElementIndex(element)}`"
+                  :key="`drop-cap-${getElementIndex(element)}-${
+                    element.keyHelper
+                  }`"
                   :element="element"
+                  :pageSetup="score.pageSetup"
                   @click.native="selectedElement = element"
-                  @dropCapUpdated="onDropCapUpdated"
+                  @update:content="
+                    updateDropCapContent(selectedElement, $event)
+                  "
                 >
                 </DropCap>
               </template>
@@ -203,35 +205,66 @@
     <template
       v-if="selectedElement != null && isTextBoxElement(selectedElement)"
     >
-      <TextToolbar :element="selectedElement" @scoreUpdated="onScoreUpdated" />
+      <TextToolbar
+        :element="selectedElement"
+        @update:fontSize="updateTextBoxFontSize(selectedElement, $event)"
+        @update:fontFamily="updateTextBoxFontFamily(selectedElement, $event)"
+        @update:alignment="updateTextBoxAlignment(selectedElement, $event)"
+        @update:color="updateTextBoxColor(selectedElement, $event)"
+      />
     </template>
     <template
       v-if="selectedElement != null && isModeKeyElement(selectedElement)"
     >
       <ModeKeyToolbar
         :element="selectedElement"
-        @scoreUpdated="onScoreUpdated"
-        @openModeKeyDialog="openModeKeyDialog"
+        @update:fontSize="updateModeKeyFontSize(selectedElement, $event)"
+        @update:alignment="updateModeKeyAlignment(selectedElement, $event)"
+        @update:color="updateModeKeyColor(selectedElement, $event)"
+        @open-mode-key-dialog="openModeKeyDialog"
       />
     </template>
     <template
       v-if="selectedElement != null && isSyllableElement(selectedElement)"
     >
-      <NeumeToolbar :element="selectedElement" @scoreUpdated="onScoreUpdated" />
+      <NeumeToolbar
+        :element="selectedElement"
+        @update:accidental="updateNoteAccidental(selectedElement, $event)"
+        @update:fthora="updateNoteFthora(selectedElement, $event)"
+        @update:gorgon="updateNoteGorgon(selectedElement, $event)"
+        @update:time="updateNoteTime(selectedElement, $event)"
+        @update:expression="updateNoteExpression(selectedElement, $event)"
+        @update:measureBar="updateNoteMeasureBar(selectedElement, $event)"
+        @update:measureNumber="updateNoteMeasureNumber(selectedElement, $event)"
+        @update:noteIndicator="updateNoteNoteIndicator(selectedElement, $event)"
+        @update:ison="updateNoteIson(selectedElement, $event)"
+        @update:vocalExpression="
+          updateNoteVocalExpression(selectedElement, $event)
+        "
+      />
     </template>
     <template
       v-if="selectedElement != null && isMartyriaElement(selectedElement)"
     >
       <MartyriaToolbar
         :element="selectedElement"
-        @scoreUpdated="onScoreUpdated"
+        @update:fthora="updateMartyriaFthora(selectedElement, $event)"
+        @update:measureBar="updateMartyriaMeasureBar(selectedElement, $event)"
+        @update:alignRight="updateMartyriaAlignRight(selectedElement, $event)"
       />
     </template>
     <ModeKeyDialog
       v-if="modeKeyDialogIsOpen"
-      @scoreUpdated="onScoreUpdated"
-      @close="modeKeyDialogIsOpen = false"
       :element="selectedElement"
+      :pageSetup="score.pageSetup"
+      @update="updateModeKeyFromTemplate(selectedElement, $event)"
+      @close="closeModeKeyDialog"
+    />
+    <PageSetupDialog
+      v-if="pageSetupDialogIsOpen"
+      :pageSetup="score.pageSetup"
+      @update="updatePageSetup($event)"
+      @close="closePageSetupDialog"
     />
   </div>
 </template>
@@ -253,16 +286,18 @@ import {
 import {
   QuantitativeNeume,
   TimeNeume,
-  Note,
-  RootSign,
   VocalExpressionNeume,
   Fthora,
   GorgonNeume,
   TempoSign,
+  MeasureBar,
+  Accidental,
+  MeasureNumber,
+  NoteIndicator,
+  Ison,
 } from '@/models/Neumes';
-import { Page, Line } from '@/models/Page';
+import { Page } from '@/models/Page';
 import { Score } from '@/models/Score';
-import { KeyboardMap, neumeMap } from '@/models/NeumeMappings';
 import { SaveService } from '@/services/SaveService';
 import { LayoutService } from '@/services/LayoutService';
 import SyllableNeumeBox from '@/components/NeumeBoxSyllable.vue';
@@ -272,9 +307,7 @@ import NeumeSelector from '@/components/NeumeSelector.vue';
 import NeumeKeyboard from '@/components/NeumeKeyboard.vue';
 import ContentEditable from '@/components/ContentEditable.vue';
 import FileMenuBar from '@/components/FileMenuBar.vue';
-import StaffText from '@/components/StaffText.vue';
 import TextBox from '@/components/TextBox.vue';
-import { store } from '@/store';
 import DropCap from '@/components/DropCap.vue';
 import ModeKey from '@/components/ModeKey.vue';
 import TextToolbar from '@/components/TextToolbar.vue';
@@ -283,9 +316,10 @@ import MainToolbar from '@/components/MainToolbar.vue';
 import NeumeToolbar from '@/components/NeumeToolbar.vue';
 import MartyriaToolbar from '@/components/MartyriaToolbar.vue';
 import ModeKeyDialog from '@/components/ModeKeyDialog.vue';
-import Neume from './Neume.vue';
+import PageSetupDialog from '@/components/PageSetupDialog.vue';
 import {
   FileMenuOpenScoreArgs,
+  FileMenuPrintReplyArgs,
   FileMenuSaveAsArgs,
   FileMenuSaveAsReplyArgs,
   FileMenuSaveReplyArgs,
@@ -297,6 +331,13 @@ import { modeKeyTemplates } from '@/models/ModeKeys';
 import { TestFileGenerator } from '@/utils/TestFileGenerator';
 import { TestFileType } from '@/utils/TestFileType';
 import { Unit } from '@/utils/Unit';
+import { withZoom } from '@/utils/withZoom';
+import { throttle } from 'throttle-debounce';
+import {
+  CommandFactory,
+  CommandService,
+} from '@/services/history/CommandService';
+import { PageSetup } from '@/models/PageSetup';
 
 export enum EntryMode {
   Auto = 'Auto',
@@ -313,7 +354,6 @@ export enum EntryMode {
     NeumeKeyboard,
     ContentEditable,
     FileMenuBar,
-    StaffText,
     TextBox,
     DropCap,
     ModeKey,
@@ -323,55 +363,228 @@ export enum EntryMode {
     MartyriaToolbar,
     MainToolbar,
     ModeKeyDialog,
+    PageSetupDialog,
   },
 })
 export default class Editor extends Vue {
+  isDevelopment: boolean = process.env.NODE_ENV !== 'production';
+
+  score: Score = new Score();
   pages: Page[] = [];
 
   entryMode: EntryMode = EntryMode.Auto;
-  keyboardMode: boolean = false;
+
+  selectedElementValue: ScoreElement | null = null;
+  selectedLyricsValue: NoteElement | null = null;
+
+  zoomValue: number = 1;
+  zoomToFit: boolean = false;
+
+  currentFilePathValue: string | null = null;
+  hasUnsavedChangesValue: boolean = false;
+
+  elementToFocus: ScoreElement | null = null;
 
   modeKeyDialogIsOpen: boolean = false;
+  pageSetupDialogIsOpen: boolean = false;
 
-  get score() {
-    return store.state.score;
-  }
+  // Commands
+  commandService: CommandService = new CommandService();
 
-  set score(score: Score) {
-    store.mutations.setScore(score);
-  }
+  noteElementCommandFactory: CommandFactory<NoteElement> =
+    new CommandFactory<NoteElement>();
+
+  martyriaCommandFactory: CommandFactory<MartyriaElement> =
+    new CommandFactory<MartyriaElement>();
+
+  tempoCommandFactory: CommandFactory<TempoElement> =
+    new CommandFactory<TempoElement>();
+
+  textBoxCommandFactory: CommandFactory<TextBoxElement> =
+    new CommandFactory<TextBoxElement>();
+
+  modeKeyCommandFactory: CommandFactory<ModeKeyElement> =
+    new CommandFactory<ModeKeyElement>();
+
+  dropCapCommandFactory: CommandFactory<DropCapElement> =
+    new CommandFactory<DropCapElement>();
+
+  scoreElementCommandFactory: CommandFactory<ScoreElement> =
+    new CommandFactory<ScoreElement>();
+
+  pageSetupCommandFactory: CommandFactory<PageSetup> =
+    new CommandFactory<PageSetup>();
+
+  // Throttled Methods
+  keydownThrottleIntervalMs: number = 100;
+
+  moveToPreviousLyricBoxThrottled = throttle(
+    this.keydownThrottleIntervalMs,
+    this.moveToPreviousLyricBox,
+  );
+
+  moveToNextLyricBoxThrottled = throttle(
+    this.keydownThrottleIntervalMs,
+    this.moveToNextLyricBox,
+  );
+
+  moveLeftThrottled = throttle(this.keydownThrottleIntervalMs, this.moveLeft);
+
+  moveRightThrottled = throttle(this.keydownThrottleIntervalMs, this.moveRight);
+
+  deleteSelectedElementThrottled = throttle(
+    this.keydownThrottleIntervalMs,
+    this.deleteSelectedElement,
+  );
+
+  deletePreviousElementThrottled = throttle(
+    this.keydownThrottleIntervalMs,
+    this.deletePreviousElement,
+  );
+
+  onFileMenuUndoThrottled = throttle(
+    this.keydownThrottleIntervalMs,
+    this.onFileMenuUndo,
+  );
+
+  onFileMenuRedoThrottled = throttle(
+    this.keydownThrottleIntervalMs,
+    this.onFileMenuRedo,
+  );
+
+  onWindowResizeThrottled = throttle(250, this.onWindowResize);
 
   get elements() {
-    return store.getters.elements;
+    return this.score != null ? this.score.staff.elements : [];
+  }
+
+  get selectedElementIndex() {
+    return this.selectedElement != null
+      ? this.elements.indexOf(this.selectedElement)
+      : -1;
+  }
+
+  get windowTitle() {
+    const unsavedChangesMarker = this.hasUnsavedChanges ? '*' : '';
+
+    if (this.currentFilePath != null) {
+      const fileName = this.currentFilePath.replace(/^.*[\\/]/, '');
+      return `${unsavedChangesMarker}${fileName} - ${process.env.VUE_APP_TITLE}`;
+    } else {
+      return `${unsavedChangesMarker}Untitled 1 - ${process.env.VUE_APP_TITLE}`;
+    }
   }
 
   get selectedElement() {
-    return store.state.selectedElement;
+    return this.selectedElementValue;
   }
 
   set selectedElement(element: ScoreElement | null) {
-    store.mutations.setSelectedElement(element);
+    if (element != null) {
+      this.selectedLyrics = null;
+    }
+
+    this.selectedElementValue = element;
   }
 
-  set currentFilePath(path: string | null) {
-    store.mutations.setCurrentFilepath(path);
+  get selectedLyrics() {
+    return this.selectedLyricsValue;
+  }
+
+  set selectedLyrics(element: NoteElement | null) {
+    if (element != null) {
+      this.selectedElementValue = null;
+    }
+
+    this.selectedLyricsValue = element;
+  }
+
+  get zoom() {
+    return this.zoomValue;
+  }
+
+  set zoom(zoom: number) {
+    if (zoom < 0.5) {
+      zoom = 0.5;
+    } else if (zoom > 2) {
+      zoom = 2;
+    }
+
+    this.zoomValue = zoom;
+    document.documentElement.style.setProperty('--zoom', zoom.toString());
   }
 
   get currentFilePath() {
-    return store.state.currentFilePath;
+    return this.currentFilePathValue;
+  }
+
+  set currentFilePath(path: string | null) {
+    this.currentFilePathValue = path;
+
+    window.document.title = this.windowTitle;
+
+    EventBus.$emit(IpcRendererChannels.SetFilePath, path);
   }
 
   get hasUnsavedChanges() {
-    return store.state.hasUnsavedChanges;
+    return this.hasUnsavedChangesValue;
   }
 
   set hasUnsavedChanges(hasUnsavedChanges: boolean) {
-    store.mutations.setHasUnsavedChanges(hasUnsavedChanges);
+    this.hasUnsavedChangesValue = hasUnsavedChanges;
+    window.document.title = this.windowTitle;
+    EventBus.$emit(IpcRendererChannels.SetHasUnsavedChanges, hasUnsavedChanges);
+  }
+
+  get pageStyle() {
+    return {
+      minWidth: withZoom(this.score.pageSetup.pageWidth),
+      maxWidth: withZoom(this.score.pageSetup.pageWidth),
+      width: withZoom(this.score.pageSetup.pageWidth),
+      height: withZoom(this.score.pageSetup.pageHeight),
+      minHeight: withZoom(this.score.pageSetup.pageHeight),
+      maxHeight: withZoom(this.score.pageSetup.pageHeight),
+    } as CSSStyleDeclaration;
+  }
+
+  getLyricStyle(element: NoteElement) {
+    return {
+      top: withZoom(element.lyricsVerticalOffset),
+      paddingLeft:
+        element.lyricsHorizontalOffset != null
+          ? withZoom(element.lyricsHorizontalOffset)
+          : undefined,
+      fontSize: withZoom(this.score.pageSetup.lyricsDefaultFontSize),
+      fontFamily: this.score.pageSetup.lyricsDefaultFontFamily,
+      color: this.score.pageSetup.lyricsDefaultColor,
+    } as CSSStyleDeclaration;
+  }
+
+  getEmptyBoxStyle(element: EmptyElement) {
+    return {
+      width: withZoom(element.width),
+      height: withZoom(element.height),
+    } as CSSStyleDeclaration;
+  }
+
+  getElementStyle(element: ScoreElement) {
+    return {
+      left: withZoom(element.x),
+      top: withZoom(element.y),
+    } as CSSStyleDeclaration;
+  }
+
+  getMelismaStyle(element: NoteElement) {
+    return {
+      width: withZoom(element.melismaWidth!),
+    } as CSSStyleDeclaration;
   }
 
   async created() {
     const fontLoader = (document as any).fonts;
 
+    // Must load all fonts before loading any documents,
+    // otherwise the text measurements will be wrong
     await Promise.all([
       fontLoader.load('1rem Athonite'),
       fontLoader.load('1rem Omega'),
@@ -380,6 +593,7 @@ export default class Editor extends Vue {
       fontLoader.load('1rem EzSpecial2'),
       fontLoader.load('1rem EzFthora'),
       fontLoader.load('1rem Oxeia'),
+      fontLoader.load('1rem PFGoudyInitials'),
       fontLoader.ready,
     ]);
 
@@ -388,16 +602,17 @@ export default class Editor extends Vue {
 
   mounted() {
     window.addEventListener('keydown', this.onKeydown);
+    window.addEventListener('resize', this.onWindowResizeThrottled);
 
     EventBus.$on(IpcMainChannels.FileMenuNewScore, this.onFileMenuNewScore);
     EventBus.$on(IpcMainChannels.FileMenuOpenScore, this.onFileMenuOpenScore);
+    EventBus.$on(IpcMainChannels.FileMenuPrint, this.onFileMenuPrint);
     EventBus.$on(IpcMainChannels.FileMenuSave, this.onFileMenuSave);
     EventBus.$on(IpcMainChannels.FileMenuSaveAs, this.onFileMenuSaveAs);
+    EventBus.$on(IpcMainChannels.FileMenuPageSetup, this.onFileMenuPageSetup);
     EventBus.$on(IpcMainChannels.SaveComplete, this.onSaveComplete);
-    EventBus.$on(
-      IpcMainChannels.FileMenuInsertNeume,
-      this.onFileMenuInsertNeume,
-    );
+    EventBus.$on(IpcMainChannels.FileMenuUndo, this.onFileMenuUndo);
+    EventBus.$on(IpcMainChannels.FileMenuRedo, this.onFileMenuRedo);
     EventBus.$on(
       IpcMainChannels.FileMenuInsertTextBox,
       this.onFileMenuInsertTextBox,
@@ -418,16 +633,15 @@ export default class Editor extends Vue {
 
   beforeDestroy() {
     window.removeEventListener('keydown', this.onKeydown);
+    window.removeEventListener('resize', this.onWindowResizeThrottled);
 
     EventBus.$off(IpcMainChannels.FileMenuNewScore, this.onFileMenuNewScore);
     EventBus.$off(IpcMainChannels.FileMenuOpenScore, this.onFileMenuOpenScore);
+    EventBus.$off(IpcMainChannels.FileMenuPrint, this.onFileMenuPrint);
     EventBus.$off(IpcMainChannels.FileMenuSave, this.onFileMenuSave);
     EventBus.$off(IpcMainChannels.FileMenuSaveAs, this.onFileMenuSaveAs);
+    EventBus.$off(IpcMainChannels.FileMenuPageSetup, this.onFileMenuPageSetup);
     EventBus.$off(IpcMainChannels.SaveComplete, this.onSaveComplete);
-    EventBus.$off(
-      IpcMainChannels.FileMenuInsertNeume,
-      this.onFileMenuInsertNeume,
-    );
     EventBus.$off(
       IpcMainChannels.FileMenuInsertTextBox,
       this.onFileMenuInsertTextBox,
@@ -448,9 +662,9 @@ export default class Editor extends Vue {
 
   updated() {
     Vue.nextTick(() => {
-      if (store.state.elementToFocus != null) {
-        const index = this.elements.indexOf(store.state.elementToFocus);
-        store.mutations.setElementToFocus(null);
+      if (this.elementToFocus != null) {
+        const index = this.elements.indexOf(this.elementToFocus);
+        this.elementToFocus = null;
 
         (this.$refs[`element-${index}`] as any)[0].focus();
       }
@@ -462,297 +676,258 @@ export default class Editor extends Vue {
   }
 
   isMelisma(element: NoteElement) {
-    return (
-      LayoutService.isIntermediateMelisma(element, this.elements) ||
-      LayoutService.isFinalMelisma(element, this.elements)
-    );
+    return element.melismaWidth > 0;
   }
 
   openModeKeyDialog() {
     this.modeKeyDialogIsOpen = true;
   }
 
+  closeModeKeyDialog() {
+    this.modeKeyDialogIsOpen = false;
+  }
+
+  closePageSetupDialog() {
+    this.pageSetupDialogIsOpen = false;
+  }
+
   isLastElement(element: ScoreElement) {
     return this.elements.indexOf(element) === this.elements.length - 1;
   }
 
-  updateQuantitativeNeume(neume: QuantitativeNeume) {
-    if (this.selectedElement) {
-      // Handle auto entry mode
-      if (
-        this.entryMode === EntryMode.Auto &&
-        !this.isLastElement(this.selectedElement)
-      ) {
-        if (!this.moveRight()) {
+  addQuantitativeNeume(
+    quantitativeNeume: QuantitativeNeume,
+    hyporoeGorgonNeume: GorgonNeume | null = null,
+  ) {
+    if (this.selectedElement == null) {
+      return;
+    }
+
+    const element = new NoteElement();
+    element.quantitativeNeume = quantitativeNeume;
+    // Special case for OligonPlusHyporoePlusKentemata
+    if (
+      quantitativeNeume === QuantitativeNeume.OligonPlusHyporoePlusKentemata
+    ) {
+      element.hyporoeGorgonNeume = hyporoeGorgonNeume;
+    }
+
+    switch (this.entryMode) {
+      case EntryMode.Auto:
+        if (!this.isLastElement(this.selectedElement) && !this.moveRight()) {
           return;
         }
-      }
-
-      // Handle insert mode
-      if (
-        this.entryMode === EntryMode.Insert &&
-        !this.isLastElement(this.selectedElement)
-      ) {
-        const emptyElement = new EmptyElement();
-
-        store.getters.elements.splice(
-          store.getters.selectedElementIndex + 1,
-          0,
-          emptyElement,
-        );
-
-        this.selectedElement = emptyElement;
-      }
-
-      if (
-        [ElementType.Empty, ElementType.Martyria].includes(
-          this.selectedElement.elementType,
-        )
-      ) {
-        this.selectedElement = this.switchToSyllable(this.selectedElement);
-      }
-
-      if (this.selectedElement.elementType === ElementType.Note) {
-        (this.selectedElement as NoteElement).setQuantitativeNeume(neume);
 
         if (this.isLastElement(this.selectedElement)) {
-          this.addEmptyElement();
+          this.addScoreElement(element, this.selectedElementIndex);
+          this.selectedElement = element;
+        } else {
+          if (this.selectedElement.elementType === ElementType.Note) {
+            if (
+              (this.selectedElement as NoteElement).quantitativeNeume !==
+              quantitativeNeume
+            ) {
+              this.updateNote(this.selectedElement as NoteElement, {
+                quantitativeNeume,
+                hyporoeGorgonNeume,
+              });
+            } else if (
+              (this.selectedElement as NoteElement).hyporoeGorgonNeume !==
+              hyporoeGorgonNeume
+            ) {
+              // Special case for hyporoe gorgon
+              this.updateNote(this.selectedElement as NoteElement, {
+                hyporoeGorgonNeume,
+              });
+            }
+          } else {
+            this.selectedElement = this.switchToSyllable(
+              this.selectedElement,
+              element,
+            );
+          }
         }
+        break;
+      case EntryMode.Insert:
+        if (this.isLastElement(this.selectedElement)) {
+          this.addScoreElement(element, this.selectedElementIndex);
+        } else {
+          this.addScoreElement(element, this.selectedElementIndex + 1);
+        }
+        this.selectedElement = element;
+        break;
 
-        this.save();
-      }
+      case EntryMode.Edit:
+        if (this.isLastElement(this.selectedElement)) {
+          this.addScoreElement(element, this.selectedElementIndex);
+        } else if (this.selectedElement.elementType === ElementType.Note) {
+          if (
+            (this.selectedElement as NoteElement).quantitativeNeume !==
+            quantitativeNeume
+          ) {
+            this.updateNote(this.selectedElement as NoteElement, {
+              quantitativeNeume,
+              hyporoeGorgonNeume,
+            });
+          } else if (
+            (this.selectedElement as NoteElement).hyporoeGorgonNeume !==
+            hyporoeGorgonNeume
+          ) {
+            // Special case for hyporoe gorgon
+            this.updateNote(this.selectedElement as NoteElement, {
+              hyporoeGorgonNeume,
+            });
+          }
+        } else if (
+          this.navigableElements.includes(this.selectedElement.elementType)
+        ) {
+          this.selectedElement = this.switchToSyllable(
+            this.selectedElement,
+            element,
+          );
+        }
+        break;
     }
-  }
 
-  updateTimeNeume(neume: TimeNeume | null) {
-    if (this.selectedElement) {
-      const index = this.elements.indexOf(this.selectedElement);
-
-      if (index === this.elements.length - 1) {
-        this.addEmptyElement();
-      }
-
-      if (this.selectedElement.elementType != ElementType.Note) {
-        this.selectedElement = this.switchToSyllable(this.selectedElement);
-      }
-
-      (this.selectedElement as NoteElement).setTimeNeume(neume);
-
-      this.save();
-    }
-  }
-
-  updateGorgonNeume(neume: GorgonNeume | null) {
-    if (this.selectedElement) {
-      const index = this.elements.indexOf(this.selectedElement);
-
-      if (index === this.elements.length - 1) {
-        this.addEmptyElement();
-      }
-
-      if (this.selectedElement.elementType != ElementType.Note) {
-        this.selectedElement = this.switchToSyllable(this.selectedElement);
-      }
-
-      (this.selectedElement as NoteElement).setGorgonNeume(neume);
-
-      this.save();
-    }
-  }
-
-  updateFthora(neume: Fthora | null) {
-    if (this.selectedElement) {
-      const index = this.elements.indexOf(this.selectedElement);
-
-      if (index === this.elements.length - 1) {
-        this.addEmptyElement();
-      }
-
-      if (this.selectedElement.elementType != ElementType.Note) {
-        this.selectedElement = this.switchToSyllable(this.selectedElement);
-      }
-
-      (this.selectedElement as NoteElement).setFthora(neume);
-
-      this.save();
-    }
-  }
-
-  updateVocalExpressionNeume(neume: VocalExpressionNeume) {
-    if (this.selectedElement) {
-      const index = this.elements.indexOf(this.selectedElement);
-
-      if (index === this.elements.length - 1) {
-        this.addEmptyElement();
-      }
-
-      if (this.selectedElement.elementType != ElementType.Note) {
-        this.selectedElement = this.switchToSyllable(this.selectedElement);
-      }
-
-      (this.selectedElement as NoteElement).setVocalExpressionNeume(neume);
-
-      this.save();
-    }
-  }
-
-  updateMartyriaNote(neume: Note) {
-    if (this.selectedElement) {
-      const index = this.elements.indexOf(this.selectedElement);
-
-      if (index === this.elements.length - 1) {
-        this.addEmptyElement();
-      }
-
-      if (this.selectedElement.elementType != ElementType.Martyria) {
-        this.selectedElement = this.switchToMartyria(this.selectedElement);
-      }
-
-      (this.selectedElement as MartyriaElement).note = neume;
-
-      this.save();
-    }
-  }
-
-  updateMartyriaRootSign(neume: RootSign) {
-    if (this.selectedElement) {
-      const index = this.elements.indexOf(this.selectedElement);
-
-      if (index === this.elements.length - 1) {
-        this.addEmptyElement();
-      }
-
-      if (this.selectedElement.elementType != ElementType.Martyria) {
-        this.selectedElement = this.switchToMartyria(this.selectedElement);
-      }
-
-      (this.selectedElement as MartyriaElement).rootSign = neume;
-
-      this.save();
-    }
-  }
-
-  updateMartyriaNoteAndRootSign(
-    note: Note,
-    rootSign: RootSign,
-    apostrophe: boolean | undefined,
-  ) {
-    if (this.selectedElement) {
-      const index = this.elements.indexOf(this.selectedElement);
-
-      if (index === this.elements.length - 1) {
-        this.addEmptyElement();
-      }
-
-      if (this.selectedElement.elementType != ElementType.Martyria) {
-        this.selectedElement = this.switchToMartyria(this.selectedElement);
-      }
-
-      (this.selectedElement as MartyriaElement).note = note;
-      (this.selectedElement as MartyriaElement).rootSign = rootSign;
-      (this.selectedElement as MartyriaElement).apostrophe =
-        apostrophe || false;
-
-      this.save();
-    }
+    this.save();
   }
 
   addAutoMartyria() {
-    if (this.selectedElement) {
-      // Handle auto mode
-      if (
-        this.entryMode === EntryMode.Auto &&
-        !this.isLastElement(this.selectedElement)
-      ) {
+    if (this.selectedElement == null) {
+      return;
+    }
+
+    const element = new MartyriaElement();
+
+    switch (this.entryMode) {
+      case EntryMode.Auto:
         this.moveRight();
-      }
 
-      // Handle insert mode
-      if (
-        this.entryMode === EntryMode.Insert &&
-        !this.isLastElement(this.selectedElement)
-      ) {
-        const emptyElement = new EmptyElement();
+        if (this.isLastElement(this.selectedElement)) {
+          this.addScoreElement(element, this.selectedElementIndex);
+          this.selectedElement = element;
+        } else {
+          if (this.selectedElement.elementType != ElementType.Martyria) {
+            this.selectedElement = this.switchToMartyria(this.selectedElement);
+          }
+        }
+        break;
+      case EntryMode.Insert:
+        if (this.isLastElement(this.selectedElement)) {
+          this.addScoreElement(element, this.selectedElementIndex);
+        } else {
+          this.addScoreElement(element, this.selectedElementIndex + 1);
+        }
+        this.selectedElement = element;
+        break;
+      case EntryMode.Edit:
+        if (this.isLastElement(this.selectedElement)) {
+          this.addScoreElement(element, this.selectedElementIndex);
+        } else if (this.selectedElement.elementType != ElementType.Martyria) {
+          this.selectedElement = this.switchToMartyria(this.selectedElement);
+        }
+        break;
+    }
 
-        store.getters.elements.splice(
-          store.getters.selectedElementIndex + 1,
-          0,
-          emptyElement,
-        );
+    this.save();
+  }
 
-        this.selectedElement = emptyElement;
-      }
+  addTempo(neume: TempoSign) {
+    if (this.selectedElement == null) {
+      return;
+    }
 
-      if (this.isLastElement(this.selectedElement)) {
-        this.addEmptyElement();
-      }
+    const element = new TempoElement();
+    element.neume = neume;
 
-      if (this.selectedElement.elementType != ElementType.Martyria) {
-        this.selectedElement = this.switchToMartyria(this.selectedElement);
-      }
+    switch (this.entryMode) {
+      case EntryMode.Auto:
+        this.moveRight();
+
+        if (this.isLastElement(this.selectedElement)) {
+          this.addScoreElement(element, this.selectedElementIndex);
+          this.selectedElement = element;
+        } else {
+          if (this.selectedElement.elementType === ElementType.Tempo) {
+            if ((this.selectedElement as TempoElement).neume !== neume) {
+              this.updateTempo(this.selectedElement as TempoElement, {
+                neume,
+              });
+            }
+          } else {
+            this.selectedElement = this.switchToTempo(
+              this.selectedElement,
+              element,
+            );
+          }
+        }
+        break;
+      case EntryMode.Insert:
+        if (this.isLastElement(this.selectedElement)) {
+          this.addScoreElement(element, this.selectedElementIndex);
+        } else {
+          this.addScoreElement(element, this.selectedElementIndex + 1);
+        }
+        this.selectedElement = element;
+        break;
+      case EntryMode.Edit:
+        if (this.isLastElement(this.selectedElement)) {
+          this.addScoreElement(element, this.selectedElementIndex);
+        } else if (this.selectedElement.elementType === ElementType.Tempo) {
+          if ((this.selectedElement as TempoElement).neume !== neume) {
+            this.updateTempo(this.selectedElement as TempoElement, {
+              neume,
+            });
+          }
+        } else {
+          this.selectedElement = this.switchToTempo(
+            this.selectedElement,
+            element,
+          );
+        }
+        break;
+    }
+
+    this.save();
+  }
+
+  addDropCap() {
+    const element = new DropCapElement();
+
+    this.addScoreElement(element, this.selectedElementIndex);
+
+    this.selectedElement = element;
+    this.elementToFocus = element;
+    this.save();
+  }
+
+  togglePageBreak() {
+    if (this.selectedElement && !this.isLastElement(this.selectedElement)) {
+      this.commandService.execute(
+        this.scoreElementCommandFactory.create('update-properties', {
+          target: this.selectedElement,
+          newValues: {
+            pageBreak: !this.selectedElement.pageBreak,
+            lineBreak: false,
+          },
+        }),
+      );
 
       this.save();
     }
   }
 
-  updateTempo(neume: TempoSign) {
-    if (this.selectedElement) {
-      if (
-        this.entryMode === EntryMode.Auto &&
-        this.selectedElement.elementType !== ElementType.Empty
-      ) {
-        this.moveRight();
-      }
-
-      const index = this.elements.indexOf(this.selectedElement);
-
-      if (index === this.elements.length - 1) {
-        this.addEmptyElement();
-      }
-
-      if (this.selectedElement.elementType != ElementType.Tempo) {
-        this.selectedElement = this.switchToTempo(this.selectedElement);
-      }
-
-      (this.selectedElement as TempoElement).neume = neume;
-
-      this.save();
-    }
-  }
-
-  updatePageBreak() {
-    if (this.selectedElement) {
-      const index = this.elements.indexOf(this.selectedElement);
-
-      if (index !== this.elements.length - 1) {
-        this.selectedElement.pageBreak = !this.selectedElement.pageBreak;
-        this.save();
-      }
-    }
-  }
-
-  updateLineBreak() {
-    if (this.selectedElement) {
-      const index = this.elements.indexOf(this.selectedElement);
-
-      if (index !== this.elements.length - 1) {
-        this.selectedElement.lineBreak = !this.selectedElement.lineBreak;
-        this.save();
-      }
-    }
-  }
-
-  updateEmpty() {
-    if (this.selectedElement) {
-      const index = this.elements.indexOf(this.selectedElement);
-
-      if (index === this.elements.length - 1) {
-        this.addEmptyElement();
-      }
-
-      if (this.selectedElement.elementType != ElementType.Empty) {
-        this.selectedElement = this.switchToEmptyElement(this.selectedElement);
-      }
+  toggleLineBreak() {
+    if (this.selectedElement && !this.isLastElement(this.selectedElement)) {
+      this.commandService.execute(
+        this.scoreElementCommandFactory.create('update-properties', {
+          target: this.selectedElement,
+          newValues: {
+            lineBreak: !this.selectedElement.lineBreak,
+            pageBreak: false,
+          },
+        }),
+      );
 
       this.save();
     }
@@ -765,49 +940,35 @@ export default class Editor extends Vue {
     newElement.pageBreak = element.pageBreak;
     newElement.lineBreak = element.lineBreak;
 
-    this.elements.splice(index, 1, newElement);
+    this.replaceScoreElement(newElement, index);
 
     return newElement;
   }
 
-  switchToTempo(element: ScoreElement) {
-    const index = this.elements.indexOf(element);
+  switchToTempo(oldElement: ScoreElement, newElement: TempoElement) {
+    const index = this.elements.indexOf(oldElement);
 
-    const newElement = new TempoElement();
-    newElement.pageBreak = element.pageBreak;
-    newElement.lineBreak = element.lineBreak;
+    newElement.pageBreak = oldElement.pageBreak;
+    newElement.lineBreak = oldElement.lineBreak;
 
-    this.elements.splice(index, 1, newElement);
-
-    return newElement;
-  }
-
-  switchToSyllable(element: ScoreElement) {
-    const index = this.elements.indexOf(element);
-
-    const newElement = new NoteElement();
-    newElement.pageBreak = element.pageBreak;
-    newElement.lineBreak = element.lineBreak;
-
-    this.elements.splice(index, 1, newElement);
+    this.replaceScoreElement(newElement, index);
 
     return newElement;
   }
 
-  switchToEmptyElement(element: ScoreElement) {
-    const index = this.elements.indexOf(element);
+  switchToSyllable(oldElement: ScoreElement, newElement: NoteElement) {
+    const index = this.elements.indexOf(oldElement);
 
-    const newElement = new EmptyElement();
-    newElement.pageBreak = element.pageBreak;
-    newElement.lineBreak = element.lineBreak;
+    newElement.pageBreak = oldElement.pageBreak;
+    newElement.lineBreak = oldElement.lineBreak;
 
-    this.elements.splice(index, 1, newElement);
+    this.replaceScoreElement(newElement, index);
 
     return newElement;
   }
 
-  addEmptyElement() {
-    this.elements.push(new EmptyElement());
+  focusLyrics(index: number) {
+    (this.$refs[`lyrics-${index}`] as ContentEditable[])[0].focus();
   }
 
   isSyllableElement(element: ScoreElement) {
@@ -830,10 +991,6 @@ export default class Editor extends Vue {
     return element.elementType == ElementType.TextBox;
   }
 
-  isStaffTextElement(element: ScoreElement) {
-    return element.elementType == ElementType.StaffText;
-  }
-
   isDropCapElement(element: ScoreElement) {
     return element.elementType == ElementType.DropCap;
   }
@@ -842,87 +999,193 @@ export default class Editor extends Vue {
     return element.elementType == ElementType.ModeKey;
   }
 
-  keydownLastHandleTime: number = +new Date();
-  keydownThrottleIntervalMs: number = 100;
+  isTextInputFocused() {
+    return (
+      document.activeElement instanceof HTMLInputElement ||
+      document.activeElement instanceof HTMLTextAreaElement ||
+      (document.activeElement instanceof HTMLElement &&
+        document.activeElement.isContentEditable)
+    );
+  }
+
+  dialogOpen() {
+    return this.modeKeyDialogIsOpen || this.pageSetupDialogIsOpen;
+  }
+
+  onWindowResize() {
+    if (this.zoomToFit) {
+      this.performZoomToFit();
+    }
+  }
 
   onKeydown(event: KeyboardEvent) {
-    const now = +new Date();
+    // Handle undo / redo
+    // See https://github.com/electron/electron/issues/3682.
+    if (event.ctrlKey && !this.isTextInputFocused() && !this.dialogOpen()) {
+      if (event.code === 'KeyZ') {
+        this.onFileMenuUndoThrottled();
+        event.preventDefault();
+        return;
+      } else if (event.code === 'KeyY') {
+        this.onFileMenuRedoThrottled();
+        event.preventDefault();
+        return;
+      }
+    }
 
-    if (
-      this.selectedElement == null ||
-      this.selectedElement.elementType === ElementType.StaffText ||
-      this.selectedElement.elementType === ElementType.TextBox ||
-      this.selectedElement.elementType === ElementType.DropCap ||
-      now - this.keydownLastHandleTime < this.keydownThrottleIntervalMs
-    ) {
+    if (this.selectedElement != null) {
+      if (
+        this.navigableElements.includes(this.selectedElement.elementType) &&
+        !this.isTextInputFocused() &&
+        !this.dialogOpen()
+      ) {
+        return this.onKeydownNeume(event);
+      } else if (this.selectedElement.elementType === ElementType.DropCap) {
+        return this.onKeydownDropCap(event);
+      }
+    } else if (this.selectedLyrics != null) {
+      return this.onKeydownLyrics(event);
+    }
+  }
+
+  onKeydownNeume(event: KeyboardEvent) {
+    let handled = false;
+
+    switch (event.code) {
+      case 'ArrowLeft':
+        this.moveLeftThrottled();
+        handled = true;
+        break;
+      case 'ArrowRight':
+      case 'Space':
+        this.moveRightThrottled();
+        handled = true;
+        break;
+      case 'Backspace':
+        handled = true;
+        this.deletePreviousElementThrottled();
+        break;
+      case 'Delete':
+        handled = true;
+        this.deleteSelectedElementThrottled();
+        break;
+    }
+
+    if (handled) {
+      event.preventDefault();
+    }
+  }
+
+  onKeydownLyrics(event: KeyboardEvent) {
+    let handled = false;
+
+    // Do not allow enter key in lyrics
+    if (event.code === 'Enter') {
+      event.preventDefault();
       return;
     }
 
-    let handled = false;
-
-    if (event.code == 'ArrowLeft') {
-      this.moveLeft();
-      handled = true;
-    } else if (event.code == 'ArrowRight' || event.code == 'Space') {
-      this.moveRight();
-      handled = true;
-    } else if (event.code == 'Backspace') {
-      handled = true;
-
-      if (this.isSyllableElement(this.selectedElement)) {
-        let syllableElement = this.selectedElement as NoteElement;
-        if (syllableElement.timeNeume) {
-          syllableElement.timeNeume = null;
-        } else {
-          this.selectedElement = this.switchToEmptyElement(
-            this.selectedElement,
-          );
-          this.moveLeft();
-          this.save();
-        }
-      } else {
-        this.selectedElement = this.switchToEmptyElement(this.selectedElement);
-        this.moveLeft();
-        this.save();
-      }
-    } else if (event.code == 'Delete') {
-      handled = true;
-
-      this.deleteSelectedElement();
+    if (event.shiftKey && event.code !== 'Minus') {
+      return;
     }
 
-    if (this.keyboardMode && !event.ctrlKey) {
-      if (event.shiftKey) {
-        const quantitativeNeume =
-          KeyboardMap.quantitativeNeumeKeyboardMap_Shift.get(event.code);
-
-        if (quantitativeNeume) {
-          this.updateQuantitativeNeume(quantitativeNeume);
+    if (event.ctrlKey) {
+      switch (event.code) {
+        case 'ArrowRight':
+          this.moveToNextLyricBoxThrottled();
           handled = true;
-        }
-      } else {
-        const quantitativeNeume = KeyboardMap.quantitativeNeumeKeyboardMap.get(
-          event.code,
-        );
-
-        if (quantitativeNeume) {
-          this.updateQuantitativeNeume(quantitativeNeume);
+          break;
+        case 'ArrowLeft':
+          this.moveToPreviousLyricBoxThrottled();
           handled = true;
-        } else {
-          const timeNeume = KeyboardMap.timeNeumeKeyboardMap.get(event.code);
-
-          if (timeNeume) {
-            this.updateTimeNeume(timeNeume);
+          break;
+        case 'Space':
+          // Ctrl + Space should add a normal space character
+          document.execCommand('insertText', false, ' ');
+          handled = true;
+          break;
+      }
+    } else {
+      switch (event.code) {
+        case 'Space':
+          this.moveToNextLyricBoxThrottled();
+          handled = true;
+          break;
+        case 'ArrowLeft':
+          if (this.getCursorPosition() === 0) {
+            this.moveToPreviousLyricBoxThrottled();
             handled = true;
           }
-        }
+          break;
+        case 'ArrowRight':
+          if (
+            this.getCursorPosition() ===
+            this.getLyricLength(this.selectedLyrics!)
+          ) {
+            this.moveToNextLyricBoxThrottled();
+            handled = true;
+          }
+          break;
+        case 'Minus':
+          if (event.shiftKey) {
+            document.execCommand('insertText', false, '_');
+          } else {
+            document.execCommand('insertText', false, '-');
+          }
+
+          if (
+            this.getCursorPosition() ===
+            this.getLyricLength(this.selectedLyrics!)
+          ) {
+            if (this.getNextLyricBoxIndex() >= 0) {
+              this.moveToNextLyricBoxThrottled();
+            } else {
+              // If this is the last lyric box, blur
+              // so that the melisma is registered and
+              // the user doesn't accidentally type more
+              // characters into box
+              const index = this.elements.indexOf(this.selectedLyrics!);
+              (this.$refs[`lyrics-${index}`] as ContentEditable[])[0].blur();
+            }
+          }
+
+          handled = true;
+          break;
       }
     }
 
     if (handled) {
       event.preventDefault();
-      this.keydownLastHandleTime = +new Date();
     }
+  }
+
+  onKeydownDropCap(event: KeyboardEvent) {
+    // Do not allow enter key in drop caps
+    if (event.code === 'Enter') {
+      event.preventDefault();
+      return;
+    }
+  }
+
+  getLyricLength(element: NoteElement) {
+    return (
+      this.$refs[
+        `lyrics-${this.elements.indexOf(element)}`
+      ] as ContentEditable[]
+    )[0].getInnerText().length;
+  }
+
+  getCursorPosition() {
+    const selection = window.getSelection();
+
+    if (selection != null) {
+      const range = selection.getRangeAt(0);
+      if (range.startOffset === range.endOffset) {
+        return selection.getRangeAt(0).startOffset;
+      }
+    }
+
+    return null;
   }
 
   navigableElements = [
@@ -962,12 +1225,55 @@ export default class Editor extends Vue {
     return false;
   }
 
-  save(markUnsavedChanges: boolean = true) {
-    localStorage.setItem(
-      'score',
-      JSON.stringify(SaveService.SaveScoreToJson(this.score)),
-    );
+  getNextLyricBoxIndex() {
+    if (this.selectedLyrics) {
+      const currentIndex = this.elements.indexOf(this.selectedLyrics);
 
+      // Find the index of the next note
+      for (let i = currentIndex + 1; i < this.elements.length; i++) {
+        if (this.elements[i].elementType === ElementType.Note) {
+          return i;
+        }
+      }
+    }
+
+    return -1;
+  }
+
+  moveToNextLyricBox() {
+    const nextIndex = this.getNextLyricBoxIndex();
+
+    if (nextIndex >= 0) {
+      this.focusLyrics(nextIndex);
+      return true;
+    }
+
+    return false;
+  }
+
+  moveToPreviousLyricBox() {
+    if (this.selectedLyrics) {
+      const currentIndex = this.elements.indexOf(this.selectedLyrics);
+      let nextIndex = -1;
+
+      // Find the index of the previous note
+      for (let i = currentIndex - 1; i >= 0; i--) {
+        if (this.elements[i].elementType === ElementType.Note) {
+          nextIndex = i;
+          break;
+        }
+      }
+
+      if (nextIndex >= 0) {
+        this.focusLyrics(nextIndex);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  save(markUnsavedChanges: boolean = true) {
     if (markUnsavedChanges) {
       this.hasUnsavedChanges = true;
     }
@@ -976,57 +1282,339 @@ export default class Editor extends Vue {
       this.elements,
       this.score.pageSetup,
     );
+
+    if (this.isDevelopment) {
+      localStorage.setItem(
+        'score',
+        JSON.stringify(SaveService.SaveScoreToJson(this.score)),
+      );
+
+      if (this.currentFilePath != null) {
+        localStorage.setItem('filePath', this.currentFilePath);
+      } else {
+        localStorage.removeItem('filePath');
+      }
+
+      localStorage.setItem(
+        'hasUnsavedChanges',
+        this.hasUnsavedChanges.toString(),
+      );
+    }
   }
 
   load() {
-    const scoreString = localStorage.getItem('score');
-    this.currentFilePath = localStorage.getItem('filePath');
-    this.hasUnsavedChanges =
-      localStorage.getItem('hasUnsavedChanges') === 'true';
+    this.score = this.createDefaultScore();
+    this.hasUnsavedChanges = false;
+    this.currentFilePath = null;
 
-    if (scoreString) {
-      const score: Score = SaveService.LoadScoreFromJson(
-        JSON.parse(scoreString),
-      );
-
-      this.score = score;
-    } else {
-      this.score = this.createDefaultScore();
-      this.selectedElement =
-        this.score.staff.elements[this.score.staff.elements.length - 1];
+    if (this.isDevelopment) {
+      const scoreString = localStorage.getItem('score');
+      if (scoreString) {
+        const score: Score = SaveService.LoadScoreFromJson(
+          JSON.parse(scoreString),
+        );
+        this.currentFilePath = localStorage.getItem('filePath');
+        this.hasUnsavedChanges =
+          localStorage.getItem('hasUnsavedChanges') === 'true';
+        this.score = score;
+      }
     }
+
+    this.selectedElement =
+      this.score.staff.elements[this.score.staff.elements.length - 1];
 
     this.pages = LayoutService.processPages(
       this.elements,
       this.score.pageSetup,
     );
+
+    EventBus.$emit(IpcRendererChannels.EditorFinishedLoading);
   }
 
-  updateLyrics(element: NoteElement, lyrics: string) {
-    // Nothing changed. No further processing is necessary.
-    if (element.lyrics === lyrics) {
-      return;
-    }
+  addScoreElement(element: ScoreElement, insertAtIndex?: number) {
+    this.commandService.execute(
+      this.scoreElementCommandFactory.create('add-to-collection', {
+        element,
+        collection: this.elements,
+        insertAtIndex,
+      }),
+    );
+  }
 
-    if (lyrics === '_') {
-      element.isMelisma = true;
-      element.isMelismaStart = false;
-      element.lyrics = '';
-    } else if (lyrics.endsWith('_')) {
-      element.isMelisma = true;
-      element.isMelismaStart = true;
-      element.lyrics = lyrics.slice(0, -1);
-    } else {
-      element.isMelisma = false;
-      element.isMelismaStart = false;
-      element.lyrics = lyrics;
-    }
+  replaceScoreElement(element: ScoreElement, replaceAtIndex: number) {
+    this.commandService.execute(
+      this.scoreElementCommandFactory.create('replace-element-in-collection', {
+        element,
+        collection: this.elements,
+        replaceAtIndex,
+      }),
+    );
+  }
+
+  removeScoreElement(element: ScoreElement) {
+    this.commandService.execute(
+      this.scoreElementCommandFactory.create('remove-from-collection', {
+        element,
+        collection: this.elements,
+      }),
+    );
+  }
+
+  updateNote(element: NoteElement, newValues: Partial<NoteElement>) {
+    this.commandService.execute(
+      this.noteElementCommandFactory.create('update-properties', {
+        target: element,
+        newValues: newValues,
+      }),
+    );
 
     this.save();
   }
 
-  onDropCapUpdated(element: DropCapElement) {
-    if (element.content === '') {
+  updateNoteAccidental(element: NoteElement, accidental: Accidental) {
+    this.updateNote(element, { accidental });
+  }
+
+  updateNoteFthora(element: NoteElement, fthora: Fthora) {
+    this.updateNote(element, { fthora });
+  }
+
+  updateNoteExpression(
+    element: NoteElement,
+    vocalExpressionNeume: VocalExpressionNeume,
+  ) {
+    this.updateNote(element, { vocalExpressionNeume });
+  }
+
+  updateNoteTime(element: NoteElement, timeNeume: TimeNeume) {
+    this.updateNote(element, { timeNeume });
+  }
+
+  updateNoteGorgon(element: NoteElement, gorgonNeume: GorgonNeume) {
+    this.updateNote(element, { gorgonNeume });
+  }
+
+  updateNoteMeasureBar(element: NoteElement, measureBar: MeasureBar) {
+    this.updateNote(element, { measureBar });
+  }
+
+  updateNoteMeasureNumber(element: NoteElement, measureNumber: MeasureNumber) {
+    this.updateNote(element, { measureNumber });
+  }
+
+  updateNoteNoteIndicator(element: NoteElement, noteIndicator: NoteIndicator) {
+    this.updateNote(element, { noteIndicator });
+  }
+
+  updateNoteIson(element: NoteElement, ison: Ison) {
+    this.updateNote(element, { ison });
+  }
+
+  updateLyrics(element: NoteElement, lyrics: string) {
+    // Replace newlines. This should only happen if the user pastes
+    // text containing new lines.
+    const sanitizedLyrics = lyrics.replace(/(?:\r\n|\r|\n)/g, ' ');
+    if (sanitizedLyrics !== lyrics) {
+      lyrics = sanitizedLyrics;
+
+      // Force the lyrics to re-render
+      element.keyHelper++;
+    }
+
+    if (element.lyrics === lyrics) {
+      return;
+    }
+
+    // Calculate melisma properties
+    let isMelisma: boolean;
+    let isMelismaStart: boolean;
+    let isHyphen: boolean;
+
+    if (lyrics === '_' || lyrics === '-') {
+      isMelisma = true;
+      isMelismaStart = false;
+      isHyphen = lyrics === '-';
+      lyrics = '';
+
+      // Force the lyrics to re-render
+      element.keyHelper++;
+    } else if (lyrics.endsWith('_') || lyrics.endsWith('-')) {
+      isMelisma = true;
+      isMelismaStart = true;
+      isHyphen = lyrics.endsWith('-');
+      lyrics = lyrics.slice(0, -1);
+
+      // Force the lyrics to re-render
+      element.keyHelper++;
+    } else {
+      isMelisma = false;
+      isMelismaStart = false;
+      isHyphen = false;
+    }
+
+    // If nothing changed, return. This could happen if
+    // the user types in an underscore when the element is
+    // already a melisma.
+    if (
+      element.lyrics === lyrics &&
+      element.isMelismaStart === isMelismaStart &&
+      element.isMelisma === isMelisma &&
+      element.isHyphen === isHyphen
+    ) {
+      return;
+    }
+
+    this.commandService.execute(
+      this.noteElementCommandFactory.create('update-properties', {
+        target: element,
+        newValues: {
+          lyrics,
+          isMelisma,
+          isMelismaStart,
+          isHyphen,
+        },
+      }),
+    );
+
+    this.save();
+  }
+
+  updateTextBox(element: TextBoxElement, newValues: Partial<TextBoxElement>) {
+    this.commandService.execute(
+      this.textBoxCommandFactory.create('update-properties', {
+        target: element,
+        newValues: newValues,
+      }),
+    );
+
+    this.save();
+  }
+
+  updateTextBoxContent(element: TextBoxElement, content: string) {
+    this.updateTextBox(element, { content });
+  }
+
+  updateTextBoxFontSize(element: TextBoxElement, fontSize: number) {
+    this.updateTextBox(element, { fontSize });
+  }
+
+  updateTextBoxFontFamily(element: TextBoxElement, fontFamily: string) {
+    this.updateTextBox(element, { fontFamily });
+  }
+
+  updateTextBoxColor(element: TextBoxElement, color: string) {
+    this.updateTextBox(element, { color });
+  }
+
+  updateTextBoxAlignment(element: TextBoxElement, alignment: TextBoxAlignment) {
+    this.updateTextBox(element, { alignment });
+  }
+
+  updateModeKey(element: ModeKeyElement, newValues: Partial<ModeKeyElement>) {
+    this.commandService.execute(
+      this.modeKeyCommandFactory.create('update-properties', {
+        target: element,
+        newValues: newValues,
+      }),
+    );
+
+    this.save();
+  }
+
+  updateModeKeyFontSize(element: ModeKeyElement, fontSize: number) {
+    this.updateModeKey(element, { fontSize });
+  }
+
+  updateModeKeyColor(element: ModeKeyElement, color: string) {
+    this.updateModeKey(element, { color });
+  }
+
+  updateModeKeyAlignment(element: ModeKeyElement, alignment: TextBoxAlignment) {
+    this.updateModeKey(element, { alignment });
+  }
+
+  updateModeKeyFromTemplate(element: ModeKeyElement, template: ModeKeyElement) {
+    const {
+      templateId,
+      mode,
+      scale,
+      scaleNote,
+      fthora,
+      fthora2,
+      note,
+      note2,
+      quantitativeNeumeTop,
+      quantitativeNeumeRight,
+    } = template;
+
+    const newValues = {
+      templateId,
+      mode,
+      scale,
+      scaleNote,
+      fthora,
+      fthora2,
+      note,
+      note2,
+      quantitativeNeumeTop,
+      quantitativeNeumeRight,
+      martyrias: template.martyrias.map((x) => x),
+    };
+
+    this.updateModeKey(element, newValues);
+
+    this.save();
+  }
+
+  updateMartyria(
+    element: MartyriaElement,
+    newValues: Partial<MartyriaElement>,
+  ) {
+    this.commandService.execute(
+      this.martyriaCommandFactory.create('update-properties', {
+        target: element,
+        newValues: newValues,
+      }),
+    );
+
+    this.save();
+  }
+
+  updateMartyriaFthora(element: MartyriaElement, fthora: Fthora) {
+    this.updateMartyria(element, { fthora });
+  }
+
+  updateMartyriaMeasureBar(element: MartyriaElement, measureBar: MeasureBar) {
+    this.updateMartyria(element, { measureBar });
+  }
+
+  updateMartyriaAlignRight(element: MartyriaElement, alignRight: boolean) {
+    this.updateMartyria(element, { alignRight });
+  }
+
+  updateTempo(element: TempoElement, newValues: Partial<TempoElement>) {
+    this.commandService.execute(
+      this.tempoCommandFactory.create('update-properties', {
+        target: element,
+        newValues: newValues,
+      }),
+    );
+
+    this.save();
+  }
+
+  updateDropCapContent(element: DropCapElement, content: string) {
+    // Replace newlines. This should only happen if the user pastes
+    // text containing new lines.
+    const sanitizedContent = content.replace(/(?:\r\n|\r|\n)/g, ' ');
+    if (sanitizedContent !== content) {
+      content = sanitizedContent;
+
+      // Force the lyrics to re-render
+      element.keyHelper++;
+    }
+
+    if (content === '') {
       const index = this.elements.indexOf(element);
 
       if (index > -1) {
@@ -1034,33 +1622,90 @@ export default class Editor extends Vue {
           this.selectedElement = null;
         }
 
-        this.elements.splice(index, 1);
+        this.removeScoreElement(element);
       }
+    } else if (element.content !== content) {
+      this.commandService.execute(
+        this.dropCapCommandFactory.create('update-properties', {
+          target: element,
+          newValues: { content },
+        }),
+      );
     }
 
     this.save();
   }
 
   deleteSelectedElement() {
-    if (this.selectedElement) {
-      const index = this.elements.indexOf(this.selectedElement);
+    if (this.selectedElement && !this.isLastElement(this.selectedElement)) {
+      const index = this.selectedElementIndex;
 
-      if (this.selectedElement && index !== this.elements.length - 1) {
-        this.moveLeft();
+      this.removeScoreElement(this.selectedElement);
 
-        if (index > -1) {
-          this.elements.splice(index, 1);
-          this.save();
-        }
-      }
+      this.selectedElement = this.elements[index];
+
+      this.save();
     }
+  }
+
+  deletePreviousElement() {
+    if (
+      this.selectedElement &&
+      this.selectedElementIndex > 0 &&
+      this.navigableElements.includes(
+        this.elements[this.selectedElementIndex - 1].elementType,
+      )
+    ) {
+      this.removeScoreElement(this.elements[this.selectedElementIndex - 1]);
+
+      this.save();
+    }
+  }
+
+  updatePageSetup(pageSetup: PageSetup) {
+    this.commandService.execute(
+      this.pageSetupCommandFactory.create('update-properties', {
+        target: this.score.pageSetup,
+        newValues: pageSetup,
+      }),
+    );
+
+    this.save();
   }
 
   updateEntryMode(mode: EntryMode) {
     this.entryMode = mode;
   }
 
+  updateZoom(zoom: number) {
+    this.zoom = zoom;
+    this.zoomToFit = false;
+  }
+
+  updateZoomToFit(zoomToFit: boolean) {
+    this.zoomToFit = zoomToFit;
+
+    if (zoomToFit) {
+      this.performZoomToFit();
+    }
+  }
+
+  performZoomToFit() {
+    const pageBackgroundElement = this.$refs['page-background'] as HTMLElement;
+
+    const computedStyle = getComputedStyle(pageBackgroundElement);
+
+    const availableWidth =
+      pageBackgroundElement.clientWidth -
+      parseFloat(computedStyle.paddingLeft) -
+      parseFloat(computedStyle.paddingRight);
+
+    this.zoom = availableWidth / this.score.pageSetup.pageWidth;
+  }
+
   onFileMenuNewScore() {
+    this.commandService.clearHistory();
+
     this.hasUnsavedChanges = false;
     this.currentFilePath = null;
     this.entryMode = EntryMode.Auto;
@@ -1071,41 +1716,52 @@ export default class Editor extends Vue {
   }
 
   onFileMenuOpenScore(args: FileMenuOpenScoreArgs) {
-    const score: Score = SaveService.LoadScoreFromJson(JSON.parse(args.data));
-    this.currentFilePath = args.filePath;
-    this.hasUnsavedChanges = false;
-    this.entryMode = EntryMode.Edit;
+    try {
+      this.commandService.clearHistory();
 
-    // if (score.version !== ScoreVersion) {
-    //   alert('This score was created by an older version of the application. It may not work properly');
-    // }
+      const score: Score = SaveService.LoadScoreFromJson(JSON.parse(args.data));
+      this.currentFilePath = args.filePath;
+      this.hasUnsavedChanges = false;
+      this.entryMode = EntryMode.Edit;
 
-    this.score = score;
-    this.selectedElement = null;
+      // if (score.version !== ScoreVersion) {
+      //   alert('This score was created by an older version of the application. It may not work properly');
+      // }
 
-    this.save(false);
+      this.score = score;
+      this.selectedElement = null;
+
+      this.save(false);
+    } catch (error) {
+      console.error(error);
+
+      if (error instanceof Error) {
+        EventBus.$emit(IpcRendererChannels.ShowErrorBox, {
+          title: 'Open failed',
+          content: error.message,
+        });
+      }
+    }
   }
 
-  onFileMenuInsertNeume() {
-    store.getters.elements.splice(
-      store.getters.selectedElementIndex,
-      0,
-      new EmptyElement(),
-    );
-    this.save();
+  onFileMenuPageSetup() {
+    this.pageSetupDialogIsOpen = true;
+  }
+
+  onFileMenuPrint() {
+    EventBus.$emit(IpcRendererChannels.FileMenuPrintReply, {
+      pageSize: this.score.pageSetup.pageSize,
+      landscape: this.score.pageSetup.landscape,
+    } as FileMenuPrintReplyArgs);
   }
 
   onFileMenuInsertTextBox() {
     const element = new TextBoxElement();
 
-    store.getters.elements.splice(
-      store.getters.selectedElementIndex,
-      0,
-      element,
-    );
+    this.addScoreElement(element, this.selectedElementIndex);
 
     this.selectedElement = element;
-    store.mutations.setElementToFocus(element);
+    this.elementToFocus = element;
 
     this.save();
   }
@@ -1113,11 +1769,7 @@ export default class Editor extends Vue {
   onFileMenuInsertModeKey() {
     const element = this.createDefaultModeKey();
 
-    store.getters.elements.splice(
-      store.getters.selectedElementIndex,
-      0,
-      element,
-    );
+    this.addScoreElement(element, this.selectedElementIndex);
 
     this.selectedElement = element;
 
@@ -1127,17 +1779,7 @@ export default class Editor extends Vue {
   }
 
   onFileMenuInsertDropCap() {
-    const element = new DropCapElement();
-
-    store.getters.elements.splice(
-      store.getters.selectedElementIndex,
-      0,
-      element,
-    );
-
-    this.selectedElement = element;
-    store.mutations.setElementToFocus(element);
-    this.save();
+    this.addDropCap();
   }
 
   getSaveFile() {
@@ -1162,12 +1804,23 @@ export default class Editor extends Vue {
     this.hasUnsavedChanges = false;
   }
 
+  onFileMenuUndo() {
+    this.commandService.undo();
+    this.save();
+  }
+
+  onFileMenuRedo() {
+    this.commandService.redo();
+    this.save();
+  }
+
   onFileMenuGenerateTestFile(testFileType: TestFileType) {
     if (
       confirm(
         'This will discard your current score. Make sure you have saved before doing this. Are you sure you wish to continue?',
       )
     ) {
+      this.commandService.clearHistory();
       this.currentFilePath = null;
       this.score = new Score();
       this.score.staff.elements.unshift(
@@ -1177,19 +1830,14 @@ export default class Editor extends Vue {
     }
   }
 
-  onScoreUpdated() {
-    this.save();
-  }
-
   createDefaultModeKey() {
     const defaultTemplate = ModeKeyElement.createFromTemplate(
       modeKeyTemplates[0],
     );
-    const element = new ModeKeyElement();
-    element.updateFrom(defaultTemplate);
-    element.color = this.score.pageSetup.modeKeyDefaultColor;
 
-    return element;
+    defaultTemplate.color = this.score.pageSetup.modeKeyDefaultColor;
+
+    return defaultTemplate;
   }
 
   createDefaultScore() {
@@ -1198,7 +1846,7 @@ export default class Editor extends Vue {
     const title = new TextBoxElement();
     title.content = 'Title';
     title.alignment = TextBoxAlignment.Center;
-    title.fontSize = Unit.FromPt(16);
+    title.fontSize = Unit.fromPt(20);
 
     score.staff.elements.unshift(title, this.createDefaultModeKey());
 
@@ -1210,7 +1858,6 @@ export default class Editor extends Vue {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 .lyrics {
-  font-family: Omega;
   min-height: 1.6rem;
   min-width: 1rem;
   text-align: center;
@@ -1246,17 +1893,10 @@ export default class Editor extends Vue {
   align-items: center;
   justify-content: center;
 
-  /* width: 39px;  */
-  /* height: 82px; */
-
   position: relative;
-
-  /* margin-right: 0.25rem; */
 }
 
 .empty-neume-box {
-  width: 39px;
-  height: 82px;
   border: 1px dotted black;
   box-sizing: border-box;
 }
@@ -1264,8 +1904,7 @@ export default class Editor extends Vue {
 .page-background {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 2rem 4rem;
+  padding: 2rem 1rem;
   background-color: #ddd;
 
   overflow: auto;
@@ -1275,14 +1914,10 @@ export default class Editor extends Vue {
 .page {
   margin-bottom: 20px;
 
+  margin-left: auto;
+  margin-right: auto;
+
   background-color: white;
-  min-width: 624px;
-  max-width: 624px;
-  width: 624px;
-  height: 864px;
-  min-height: 864px;
-  max-height: 864px;
-  padding: 96px;
   overflow: hidden;
 
   position: relative;
@@ -1314,24 +1949,57 @@ export default class Editor extends Vue {
 
 .lyrics-container {
   min-height: 1.6rem;
-  min-width: 1rem;
+  min-width: 100%;
   text-align: center;
   position: absolute;
   white-space: nowrap;
 }
 
 .melisma {
-  font-family: Omega;
   position: absolute;
   display: inline;
+  overflow: hidden;
+  white-space: pre;
 }
 
 .melisma.full {
-  position: relative;
+  left: 0;
 }
 
 .neume {
   display: flex;
+}
+
+.page-break {
+  position: absolute;
+  top: calc(-10px * var(--zoom, 1));
+}
+
+.page-break img {
+  height: calc(16px * var(--zoom, 1));
+  width: calc(16px * var(--zoom, 1));
+}
+
+.line-break {
+  position: absolute;
+  font-size: calc(16px * var(--zoom, 1));
+  top: calc(-10px * var(--zoom, 1));
+}
+
+.page-break-2 {
+  position: absolute;
+  top: calc(-16px * var(--zoom, 1));
+}
+
+.page-break-2 img {
+  height: calc(16px * var(--zoom, 1));
+  width: calc(16px * var(--zoom, 1));
+}
+
+.line-break-2 {
+  position: absolute;
+  font-size: calc(16px * var(--zoom, 1));
+  top: calc(-18px * var(--zoom, 1));
 }
 
 @media print {
@@ -1357,12 +2025,6 @@ export default class Editor extends Vue {
     height: auto;
     margin-bottom: 0;
     padding: 0;
-    width: 816px;
-    height: 1056px;
-    min-width: 816px;
-    max-width: 816px;
-    min-height: 1056px;
-    max-height: 1056px;
   }
 
   .empty-neume-box {
@@ -1381,7 +2043,9 @@ export default class Editor extends Vue {
   .martyria-toolbar,
   .text-toolbar,
   .page-break,
-  .line-break {
+  .line-break,
+  .page-break-2,
+  .line-break-2 {
     display: none !important;
   }
 }

@@ -9,28 +9,43 @@ import {
   ipcMain,
   MenuItemConstructorOptions,
 } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib';
 import installExtension, { VUEJS_DEVTOOLS } from 'electron-devtools-installer';
 import {
   FileMenuOpenScoreArgs,
+  FileMenuPrintReplyArgs,
   FileMenuSaveAsArgs,
   FileMenuSaveAsReplyArgs,
   FileMenuSaveReplyArgs,
   IpcMainChannels,
   IpcRendererChannels,
+  ShowErrorBoxArgs,
 } from './ipc/ipcChannels';
 import path from 'path';
 import { promises as fs } from 'fs';
-import os from 'os';
 import { TestFileType } from './utils/TestFileType';
+import AdmZip from 'adm-zip';
+import { errorMonitor } from 'events';
+
 const isDevelopment = process.env.NODE_ENV !== 'production';
+
+const userDataPath = app.getPath('userData');
+
+const maxRecentFiles = 20;
+const storeFilePath = path.join(userDataPath, 'settings.json');
 
 declare const __static: string;
 
-// Scheme must be registered before the app is ready
-protocol.registerSchemesAsPrivileged([
-  { scheme: 'app', privileges: { secure: true, standard: true } },
-]);
+let win!: BrowserWindow;
+
+interface Store {
+  recentFiles: string[];
+}
+
+let store: Store = {
+  recentFiles: [],
+};
 
 let saving = false;
 
@@ -44,7 +59,50 @@ const state: State = {
   filePath: null,
 };
 
-async function showUnsavedChangesWarning(win: BrowserWindow) {
+// Scheme must be registered before the app is ready
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'app', privileges: { secure: true, standard: true } },
+]);
+
+async function loadStore() {
+  try {
+    store = JSON.parse(await fs.readFile(storeFilePath, 'utf8'));
+  } catch (error) {
+    // Return default file
+    return {
+      recentFiles: [],
+    } as Store;
+  }
+}
+
+async function saveStore() {
+  try {
+    await fs.writeFile(storeFilePath, JSON.stringify(store));
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function addToRecentFiles(filePath: string) {
+  // This is probably overkill, but we'll load the store first
+  // to get the most recent store, just in case there are multiple
+  // instances of the app running. This will keep the recent files
+  // in sync across all the apps.
+  // Concurrency should probably be handled better, but it's
+  // an edge case.
+  await loadStore();
+
+  // Remove the file from the list if it already exists
+  store.recentFiles = store.recentFiles.filter((x) => x !== filePath);
+  // Add the file to the beginning of the list
+  store.recentFiles.unshift(filePath);
+  // Trim off files at the end if there are too many
+  store.recentFiles = store.recentFiles.slice(0, maxRecentFiles);
+
+  await saveStore();
+}
+
+async function showUnsavedChangesWarning() {
   const fileName =
     state.filePath != null ? path.basename(state.filePath) : 'Untitled 1';
 
@@ -57,13 +115,13 @@ async function showUnsavedChangesWarning(win: BrowserWindow) {
   });
 }
 
-async function checkForUnsavedChanges(win: BrowserWindow) {
+async function checkForUnsavedChanges() {
   if (state.hasUnsavedChanges) {
-    const dialogResult = await showUnsavedChangesWarning(win);
+    const dialogResult = await showUnsavedChangesWarning();
 
     if (dialogResult.response === 0) {
       // User wants to save
-      if (!(await handleSave(win, state.filePath))) {
+      if (!(await handleSave(state.filePath))) {
         // If the user cancels the save dialog
         // then don't do anything.
         return false;
@@ -77,7 +135,49 @@ async function checkForUnsavedChanges(win: BrowserWindow) {
   return true;
 }
 
-async function handleSave(win: BrowserWindow, filePath: string | null) {
+async function writeScoreFile(filePath: string, data: string) {
+  // If using the compressed file format, zip first
+  if (path.extname(filePath) === '.byz') {
+    const zip = new AdmZip();
+
+    const unzippedFileName = `${path.basename(filePath, '.byz')}.byzx`;
+
+    zip.addFile(unzippedFileName, Buffer.from(data));
+    // Missing typescript definition
+    await (zip as any).writeZipPromise(filePath);
+  } else {
+    await fs.writeFile(filePath, data);
+  }
+}
+
+async function readScoreFile(filePath: string) {
+  let data: string;
+
+  // If using the compressed file format, zip first
+  if (path.extname(filePath) === '.byz') {
+    const zip = new AdmZip(filePath);
+    data = zip.getEntries()[0].getData().toString('utf8');
+  } else {
+    data = await fs.readFile(filePath, 'utf8');
+  }
+
+  return data;
+}
+
+async function openFile(filePath: string) {
+  const data = await readScoreFile(filePath);
+
+  win.webContents.send(IpcMainChannels.FileMenuOpenScore, {
+    data,
+    filePath,
+  } as FileMenuOpenScoreArgs);
+
+  await addToRecentFiles(filePath);
+
+  createMenu();
+}
+
+async function handleSave(filePath: string | null) {
   try {
     if (saving) {
       return false;
@@ -89,30 +189,56 @@ async function handleSave(win: BrowserWindow, filePath: string | null) {
       win.webContents.send(IpcMainChannels.FileMenuSave);
 
       // Wait for the reply and write the data to the file path
-      ipcMain.once(
-        IpcRendererChannels.FileMenuSaveReply,
-        async (event, args: FileMenuSaveReplyArgs) => {
-          saving = false;
-          await fs.writeFile(filePath!, args.data);
-          win.webContents.send(IpcMainChannels.SaveComplete);
-        },
+      await new Promise<void>((resolve, reject) =>
+        ipcMain.once(
+          IpcRendererChannels.FileMenuSaveReply,
+          async (event, args: FileMenuSaveReplyArgs) => {
+            try {
+              saving = false;
+              await writeScoreFile(filePath!, args.data);
+              win.webContents.send(IpcMainChannels.SaveComplete);
+              resolve();
+            } catch (error) {
+              reject(error);
+            }
+          },
+        ),
       );
 
       return true;
     } else {
-      return await handleSaveAs(win);
+      return await handleSaveAs();
     }
   } catch (error) {
     console.error(error);
+
+    if (error instanceof Error) {
+      dialog.showMessageBox(win, {
+        type: 'error',
+        title: 'Save failed',
+        message: error.message,
+      });
+    }
+
     return false;
   }
 }
 
-async function handleSaveAs(win: BrowserWindow) {
+async function handleSaveAs() {
   try {
     const dialogResult = await dialog.showSaveDialog(win, {
       title: 'Save Score',
-      filters: [{ name: 'Score File', extensions: ['json'] }],
+      defaultPath: state.filePath || 'Untitled 1',
+      filters: [
+        {
+          name: `${process.env.VUE_APP_TITLE} File`,
+          extensions: ['byz'],
+        },
+        {
+          name: `Uncompressed ${process.env.VUE_APP_TITLE} File`,
+          extensions: ['byzx'],
+        },
+      ],
     });
 
     if (!dialogResult.canceled) {
@@ -124,13 +250,24 @@ async function handleSaveAs(win: BrowserWindow) {
       } as FileMenuSaveAsArgs);
 
       // Wait for the reply and write the data to the file path
-      ipcMain.once(
-        IpcRendererChannels.FileMenuSaveAsReply,
-        async (event, args: FileMenuSaveAsReplyArgs) => {
-          saving = false;
-          await fs.writeFile(dialogResult.filePath!, args.data);
-          win.webContents.send(IpcMainChannels.SaveComplete);
-        },
+      await new Promise<void>((resolve, reject) =>
+        ipcMain.once(
+          IpcRendererChannels.FileMenuSaveAsReply,
+          async (event, args: FileMenuSaveAsReplyArgs) => {
+            try {
+              saving = false;
+
+              await writeScoreFile(dialogResult.filePath!, args.data);
+              win.webContents.send(IpcMainChannels.SaveComplete);
+
+              await addToRecentFiles(dialogResult.filePath!);
+              createMenu();
+              resolve();
+            } catch (error) {
+              reject(error);
+            }
+          },
+        ),
       );
 
       return true;
@@ -141,11 +278,20 @@ async function handleSaveAs(win: BrowserWindow) {
   } catch (error) {
     saving = false;
     console.error(error);
+
+    if (error instanceof Error) {
+      dialog.showMessageBox(win, {
+        type: 'error',
+        title: 'Save As failed',
+        message: error.message,
+      });
+    }
+
     return false;
   }
 }
 
-function createMenu(win: BrowserWindow) {
+function createMenu() {
   var menu = Menu.buildFromTemplate([
     {
       label: '&File',
@@ -154,7 +300,7 @@ function createMenu(win: BrowserWindow) {
           label: '&New',
           accelerator: 'CmdOrCtrl+N',
           async click() {
-            if (await checkForUnsavedChanges(win)) {
+            if (await checkForUnsavedChanges()) {
               win.webContents.send(IpcMainChannels.FileMenuNewScore);
             }
           },
@@ -163,28 +309,36 @@ function createMenu(win: BrowserWindow) {
           label: '&Open',
           accelerator: 'CmdOrCtrl+O',
           async click() {
-            if (await checkForUnsavedChanges(win)) {
+            if (await checkForUnsavedChanges()) {
               try {
                 const dialogResult = await dialog.showOpenDialog(win, {
                   properties: ['openFile'],
                   title: 'Open Score',
-                  filters: [{ name: 'Score File', extensions: ['json'] }],
+                  filters: [
+                    {
+                      name: `${process.env.VUE_APP_TITLE} Files`,
+                      extensions: ['byz', 'byzx'],
+                    },
+                  ],
                 });
 
                 const filePath = dialogResult.filePaths[0];
 
                 if (!dialogResult.canceled) {
-                  const data = await fs.readFile(filePath, 'utf8');
-
-                  win.webContents.send(IpcMainChannels.FileMenuOpenScore, {
-                    data,
-                    filePath,
-                  } as FileMenuOpenScoreArgs);
+                  await openFile(filePath);
                 } else {
                   saving = false;
                 }
               } catch (error) {
                 console.error(error);
+
+                if (error instanceof Error) {
+                  dialog.showMessageBox(win, {
+                    type: 'error',
+                    title: 'Open failed',
+                    message: error.message,
+                  });
+                }
               } finally {
                 saving = false;
               }
@@ -192,20 +346,50 @@ function createMenu(win: BrowserWindow) {
           },
         },
         {
+          id: 'recentfiles',
+          label: 'Open Recent',
+          submenu: store.recentFiles.map((x, index) => ({
+            label: `${index + 1}: ${x}`,
+            async click() {
+              if (await checkForUnsavedChanges()) {
+                try {
+                  await openFile(x);
+                } catch (error) {
+                  console.error(error);
+
+                  if (error instanceof Error) {
+                    dialog.showMessageBox(win, {
+                      type: 'error',
+                      title: 'Open failed',
+                      message: error.message,
+                    });
+                  }
+                }
+              }
+            },
+          })),
+        },
+        {
           label: '&Save',
           accelerator: 'CmdOrCtrl+S',
           async click() {
-            handleSave(win, state.filePath);
+            handleSave(state.filePath);
           },
         },
         {
           label: 'Save &As',
           accelerator: 'CmdOrCtrl+Shift+S',
           async click() {
-            handleSaveAs(win);
+            handleSaveAs();
           },
         },
         { type: 'separator' },
+        {
+          label: 'Page Setup',
+          click() {
+            win.webContents.send(IpcMainChannels.FileMenuPageSetup);
+          },
+        },
         {
           label: '&Export as PDF',
           accelerator: 'CmdOrCtrl+E',
@@ -214,24 +398,86 @@ function createMenu(win: BrowserWindow) {
               const dialogResult = await dialog.showSaveDialog(win, {
                 title: 'Export Score as PDF',
                 filters: [{ name: 'PDF File', extensions: ['pdf'] }],
+                defaultPath:
+                  state.filePath != null
+                    ? path.basename(
+                        state.filePath,
+                        path.extname(state.filePath),
+                      )
+                    : 'Untitled 1',
               });
 
               if (!dialogResult.canceled) {
-                const data = await win.webContents.printToPDF({
-                  marginsType: 1,
-                });
-                await fs.writeFile(dialogResult.filePath!, data);
+                win.webContents.send(IpcMainChannels.FileMenuPrint);
+
+                // Wait for the reply and print
+                await new Promise<void>((resolve, reject) =>
+                  ipcMain.once(
+                    IpcRendererChannels.FileMenuPrintReply,
+                    async (event, args: FileMenuPrintReplyArgs) => {
+                      try {
+                        const data = await win.webContents.printToPDF({
+                          pageSize: args.pageSize,
+                          landscape: args.landscape,
+                        });
+                        await fs.writeFile(dialogResult.filePath!, data);
+                        resolve();
+                      } catch (error) {
+                        reject(error);
+                      }
+                    },
+                  ),
+                );
               }
             } catch (error) {
               console.error(error);
+
+              if (error instanceof Error) {
+                dialog.showMessageBox(win, {
+                  type: 'error',
+                  title: 'Export to PDF failed',
+                  message: error.message,
+                });
+              }
             }
           },
         },
         {
           label: '&Print',
           accelerator: 'CmdOrCtrl+P',
-          click() {
-            win.webContents.print();
+          async click() {
+            try {
+              win.webContents.send(IpcMainChannels.FileMenuPrint);
+
+              // Wait for the reply and print
+              await new Promise<void>((resolve, reject) =>
+                ipcMain.once(
+                  IpcRendererChannels.FileMenuPrintReply,
+                  async (event, args: FileMenuPrintReplyArgs) => {
+                    try {
+                      win.webContents.print({
+                        pageSize: args.pageSize,
+                        landscape: args.landscape,
+                      });
+
+                      resolve();
+                    } catch (error) {
+                      reject(error);
+                    }
+                  },
+                ),
+              );
+            } catch (error) {
+              console.error(error);
+
+              if (error instanceof Error) {
+                dialog.showMessageBox(win, {
+                  type: 'error',
+                  title: 'Print failed',
+                  message: error.message,
+                });
+              }
+            }
           },
         },
         { type: 'separator' },
@@ -245,14 +491,37 @@ function createMenu(win: BrowserWindow) {
       ],
     },
     {
-      label: '&Insert',
+      label: '&Edit',
       submenu: [
         {
-          label: '&Neume',
-          click() {
-            win.webContents.send(IpcMainChannels.FileMenuInsertNeume);
+          id: 'undo',
+          label: '&Undo',
+          accelerator: 'CmdOrCtrl+Z',
+          click(menuItem, browserWindow, event) {
+            // The accelerator is handled in the renderer process because of
+            // https://github.com/electron/electron/issues/3682.
+            if (!event.triggeredByAccelerator) {
+              win.webContents.send(IpcMainChannels.FileMenuUndo);
+            }
           },
         },
+        {
+          id: 'redo',
+          label: '&Redo',
+          accelerator: 'CmdOrCtrl+Y',
+          click(menuItem, browserWindow, event) {
+            // The accelerator is handled in the renderer process because of
+            // https://github.com/electron/electron/issues/3682.
+            if (!event.triggeredByAccelerator) {
+              win.webContents.send(IpcMainChannels.FileMenuRedo);
+            }
+          },
+        },
+      ],
+    },
+    {
+      label: '&Insert',
+      submenu: [
         {
           label: '&Drop Cap',
           click() {
@@ -303,6 +572,27 @@ function createMenu(win: BrowserWindow) {
           },
         ]
       : []),
+    {
+      role: 'help',
+      submenu: [
+        {
+          label: 'About',
+          click() {
+            let detail = `Version: ${app.getVersion()}\n`;
+            detail += `Electron: ${process.versions.electron}\n`;
+            detail += `Chromium: ${process.versions.chrome}\n`;
+            detail += `Node.js: ${process.version}`;
+
+            dialog.showMessageBox(win, {
+              title: process.env.VUE_APP_TITLE,
+              message: process.env.VUE_APP_TITLE!,
+              detail: detail,
+              type: 'info',
+            });
+          },
+        },
+      ],
+    },
   ]);
 
   Menu.setApplicationMenu(menu);
@@ -310,7 +600,7 @@ function createMenu(win: BrowserWindow) {
 
 async function createWindow() {
   // Create the browser window.
-  const win = new BrowserWindow({
+  win = new BrowserWindow({
     width: 1280,
     height: 1024,
     webPreferences: {
@@ -320,6 +610,7 @@ async function createWindow() {
         .ELECTRON_NODE_INTEGRATION as unknown as boolean,
       contextIsolation: !process.env.ELECTRON_NODE_INTEGRATION,
       preload: path.join(__dirname, 'preload.js'),
+      spellcheck: false,
     },
     icon: path.join(__static, 'favicon-32.png'),
     show: false,
@@ -331,7 +622,22 @@ async function createWindow() {
     win.show();
   });
 
-  createMenu(win);
+  // Prevent the user from accidentally
+  // closing the app with unsaved changes
+  win.on('close', async (event) => {
+    if (state.hasUnsavedChanges) {
+      event.preventDefault();
+
+      if (await checkForUnsavedChanges()) {
+        app.exit();
+      }
+    }
+  });
+
+  // Load store before we create the menu, since
+  // the store contains the list of recent files
+  await loadStore();
+  createMenu();
 
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     // Load the url of the dev server if in development mode
@@ -340,9 +646,15 @@ async function createWindow() {
   } else {
     createProtocol('app');
     // Load the index.html when not in development
-    win.loadURL('app://./index.html');
+    autoUpdater.checkForUpdatesAndNotify();
+    await win.loadURL('app://./index.html');
   }
 }
+
+app.setAboutPanelOptions({
+  applicationName: app.getName(),
+  applicationVersion: app.getVersion(),
+});
 
 // Quit when all windows are closed.
 app.on('window-all-closed', () => {
@@ -397,4 +709,52 @@ ipcMain.on(IpcRendererChannels.SetHasUnsavedChanges, async (event, data) => {
 
 ipcMain.on(IpcRendererChannels.SetFilePath, async (event, data) => {
   state.filePath = data;
+});
+
+ipcMain.on(IpcRendererChannels.SetCanUndo, async (event, data) => {
+  Menu.getApplicationMenu()!.getMenuItemById('undo')!.enabled = data;
+});
+
+ipcMain.on(IpcRendererChannels.SetCanRedo, async (event, data) => {
+  Menu.getApplicationMenu()!.getMenuItemById('redo')!.enabled = data;
+});
+
+ipcMain.on(
+  IpcRendererChannels.ShowErrorBox,
+  async (event, args: ShowErrorBoxArgs) => {
+    dialog.showMessageBox(win, {
+      type: 'error',
+      title: args.title,
+      message: args.content,
+    });
+  },
+);
+
+ipcMain.on(IpcRendererChannels.EditorFinishedLoading, async () => {
+  // Check if there a file was passed to the app.
+  // See https://github.com/electron/electron/issues/4690#issuecomment-422617581
+  // for why the special case for isPackaged is needed.
+  if (app.isPackaged) {
+    // workaround for missing executable argument)
+    process.argv.unshift('');
+  }
+
+  // parameters is now an array containing any files/folders that your OS will pass to your application
+  const parameters = process.argv.slice(2);
+
+  if (parameters.length > 0) {
+    try {
+      await openFile(parameters[0]);
+    } catch (error) {
+      console.error(error);
+
+      if (error instanceof Error) {
+        dialog.showMessageBox(win, {
+          type: 'error',
+          title: 'Open failed',
+          message: error.message,
+        });
+      }
+    }
+  }
 });

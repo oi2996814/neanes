@@ -1,24 +1,21 @@
 <template>
-  <div class="text-box-container">
+  <div class="text-box-container" :style="containerStyle">
     <ContentEditable
       ref="text"
       class="text-box"
-      :style="style"
+      :style="textBoxStyle"
       :content="element.content"
-      :class="[{ selected: element == selectedElement }]"
-      @blur="updateText($event)"
+      @blur="updateContent($event)"
     ></ContentEditable>
   </div>
 </template>
 
 <script lang="ts">
 import { Component, Prop, Vue } from 'vue-property-decorator';
-import { Neume as NeumeType } from '@/models/Neumes';
-import { ScoreElement, TextBoxAlignment } from '@/models/Element';
-import { neumeMap } from '@/models/NeumeMappings';
 import { TextBoxElement } from '@/models/Element';
 import ContentEditable from '@/components/ContentEditable.vue';
-import { store } from '@/store';
+import { withZoom } from '@/utils/withZoom';
+import { PageSetup } from '@/models/PageSetup';
 
 @Component({
   components: {
@@ -27,35 +24,41 @@ import { store } from '@/store';
 })
 export default class TextBox extends Vue {
   @Prop() element!: TextBoxElement;
-
-  editable: boolean = false;
-
-  get selectedElement() {
-    return store.state.selectedElement;
-  }
-
-  set selectedElement(element: ScoreElement | null) {
-    store.mutations.setSelectedElement(element);
-  }
+  @Prop() pageSetup!: PageSetup;
 
   get textElement() {
     return this.$refs.text as ContentEditable;
   }
 
-  get style() {
+  get containerStyle() {
     const style: any = {
       color: this.element.color,
       fontFamily: this.element.fontFamily,
-      fontSize: this.element.fontSize + 'px',
+      fontSize: withZoom(this.element.fontSize),
       textAlign: this.element.alignment,
+      width: withZoom(this.pageSetup.innerPageWidth),
+      height: withZoom(this.element.height),
     };
 
     return style;
   }
 
-  updateText(text: string) {
-    this.element.content = text;
-    this.$emit('scoreUpdated');
+  get textBoxStyle() {
+    const style: any = {
+      width: withZoom(this.pageSetup.innerPageWidth),
+      height: withZoom(this.element.height),
+    };
+
+    return style;
+  }
+
+  updateContent(content: string) {
+    // Nothing actually changed, so do nothing
+    if (this.element.content === content) {
+      return;
+    }
+
+    this.$emit('update:content', content);
   }
 
   focus() {
@@ -66,16 +69,18 @@ export default class TextBox extends Vue {
 
 <style scoped>
 .text-box-container {
-  width: 624px;
   border: 1px dotted black;
   box-sizing: border-box;
+  min-height: 10px;
 }
 
 .text-box {
-  height: 100%;
-  width: 100%;
   display: block;
 
   min-height: 10px;
+}
+
+.text-box:focus {
+  outline: none;
 }
 </style>

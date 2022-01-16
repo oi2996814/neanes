@@ -7,7 +7,6 @@ import {
   NoteElement,
   ScoreElement,
   ScoreElementOffset,
-  StaffTextElement,
   TextBoxElement,
   ModeKeyElement,
   TempoElement,
@@ -21,7 +20,6 @@ import {
   MartyriaElement as MartyriaElement_v1,
   TempoElement as TempoElement_v1,
   NoteElement as NoteElement_v1,
-  StaffTextElement as StaffTextElement_v1,
   TextBoxElement as TextBoxElement_v1,
   ScoreElement as ScoreElement_v1,
   ScoreElementOffset as ScoreElementOffset_v1,
@@ -38,15 +36,14 @@ export class SaveService {
   public static LoadScoreFromJson(s: IScore) {
     let score: Score = new Score();
 
-    if (s.version == null) {
-      console.warn('File is missing file version');
-      return score;
+    if (s.version == null || typeof s.version !== 'string') {
+      throw new Error('File is missing file version.');
     }
 
     if (s.version.startsWith('1.')) {
       score = this.LoadScore_v1(s as Score_v1);
     } else {
-      console.warn('Unrecognized file version', s.version);
+      throw new Error(`Unrecognized file version: ${s.version}`);
     }
 
     return score;
@@ -66,6 +63,7 @@ export class SaveService {
     score.pageSetup.dropCapDefaultFontSize = s.pageSetup.dropCapDefaultFontSize;
     score.pageSetup.leftMargin = s.pageSetup.leftMargin;
     score.pageSetup.lineHeight = s.pageSetup.lineHeight;
+    score.pageSetup.lyricsDefaultColor = s.pageSetup.lyricsDefaultColor;
     score.pageSetup.lyricsDefaultFontFamily =
       s.pageSetup.lyricsDefaultFontFamily;
     score.pageSetup.lyricsDefaultFontSize = s.pageSetup.lyricsDefaultFontSize;
@@ -73,12 +71,30 @@ export class SaveService {
     score.pageSetup.martyriaDefaultColor = s.pageSetup.martyriaDefaultColor;
     score.pageSetup.tempoDefaultColor = s.pageSetup.tempoDefaultColor;
     score.pageSetup.modeKeyDefaultColor = s.pageSetup.modeKeyDefaultColor;
+    score.pageSetup.neumeDefaultColor = s.pageSetup.neumeDefaultColor;
     score.pageSetup.neumeDefaultFontSize = s.pageSetup.neumeDefaultFontSize;
     score.pageSetup.neumeDefaultSpacing = s.pageSetup.neumeDefaultSpacing;
     score.pageSetup.pageHeight = s.pageSetup.pageHeight;
     score.pageSetup.pageWidth = s.pageSetup.pageWidth;
     score.pageSetup.rightMargin = s.pageSetup.rightMargin;
     score.pageSetup.topMargin = s.pageSetup.topMargin;
+
+    score.pageSetup.accidentalDefaultColor = s.pageSetup.accidentalDefaultColor;
+    score.pageSetup.fthoraDefaultColor = s.pageSetup.fthoraDefaultColor;
+    score.pageSetup.heteronDefaultColor = s.pageSetup.heteronDefaultColor;
+    score.pageSetup.gorgonDefaultColor = s.pageSetup.gorgonDefaultColor;
+    score.pageSetup.measureBarDefaultColor = s.pageSetup.measureBarDefaultColor;
+    score.pageSetup.measureNumberDefaultColor =
+      s.pageSetup.measureNumberDefaultColor;
+    score.pageSetup.noteIndicatorDefaultColor =
+      s.pageSetup.noteIndicatorDefaultColor;
+    score.pageSetup.isonDefaultColor = s.pageSetup.isonDefaultColor;
+
+    score.pageSetup.pageSize = s.pageSetup.pageSize;
+    score.pageSetup.pageSizeUnit = s.pageSetup.pageSizeUnit;
+    score.pageSetup.landscape = s.pageSetup.landscape || undefined;
+
+    score.pageSetup.hyphenSpacing = s.pageSetup.hyphenSpacing;
 
     for (let e of s.staff.elements) {
       let element: ScoreElement_v1 = new EmptyElement_v1();
@@ -105,13 +121,6 @@ export class SaveService {
         case ElementType.Note:
           element = new NoteElement_v1();
           this.SaveNote(element as NoteElement_v1, e as NoteElement);
-          break;
-        case ElementType.StaffText:
-          element = new StaffTextElement_v1();
-          this.SaveStaffText(
-            element as StaffTextElement_v1,
-            e as StaffTextElement,
-          );
           break;
         case ElementType.TextBox:
           element = new TextBoxElement_v1();
@@ -148,6 +157,7 @@ export class SaveService {
     element.rootSign = e.rootSign;
     element.fthora = e.fthora || undefined;
     element.measureBar = e.measureBar || undefined;
+    element.alignRight = e.alignRight || undefined;
   }
 
   public static SaveTempo(element: TempoElement_v1, e: TempoElement) {
@@ -163,6 +173,10 @@ export class SaveService {
 
     if (e.gorgonNeume != null) {
       element.gorgonNeume = e.gorgonNeume;
+    }
+
+    if (e.hyporoeGorgonNeume != null) {
+      element.hyporoeGorgonNeume = e.hyporoeGorgonNeume;
     }
 
     if (e.fthora != null) {
@@ -181,19 +195,22 @@ export class SaveService {
       element.measureBar = e.measureBar;
     }
 
+    if (e.measureNumber != null) {
+      element.measureNumber = e.measureNumber;
+    }
+
+    if (e.noteIndicator != null) {
+      element.noteIndicator = e.noteIndicator;
+    }
+
+    if (e.ison != null) {
+      element.ison = e.ison;
+    }
+
     element.lyrics = e.lyrics !== '' ? e.lyrics : undefined;
     element.isMelisma = e.isMelisma || undefined;
     element.isMelismaStart = e.isMelismaStart || undefined;
-  }
-
-  public static SaveStaffText(
-    element: StaffTextElement_v1,
-    e: StaffTextElement,
-  ) {
-    element.text = e.text;
-    element.offset = new ScoreElementOffset_v1();
-    element.offset.x = e.offset.x;
-    element.offset.y = e.offset.y;
+    element.isHyphen = e.isHyphen || undefined;
   }
 
   public static SaveTextBox(element: TextBoxElement_v1, e: TextBoxElement) {
@@ -206,6 +223,7 @@ export class SaveService {
   }
 
   public static SaveModeKey(element: ModeKeyElement_v1, e: ModeKeyElement) {
+    element.templateId = e.templateId || undefined;
     element.alignment = e.alignment;
     element.mode = e.mode;
     element.scale = e.scale;
@@ -229,26 +247,8 @@ export class SaveService {
     score.staff.elements = [];
 
     score.pageSetup = new PageSetup();
-    score.pageSetup.bottomMargin = s.pageSetup.bottomMargin;
-    score.pageSetup.dropCapDefaultColor = s.pageSetup.dropCapDefaultColor;
-    score.pageSetup.dropCapDefaultFontFamily =
-      s.pageSetup.dropCapDefaultFontFamily;
-    score.pageSetup.dropCapDefaultFontSize = s.pageSetup.dropCapDefaultFontSize;
-    score.pageSetup.leftMargin = s.pageSetup.leftMargin;
-    score.pageSetup.lineHeight = s.pageSetup.lineHeight;
-    score.pageSetup.lyricsDefaultFontFamily =
-      s.pageSetup.lyricsDefaultFontFamily;
-    score.pageSetup.lyricsDefaultFontSize = s.pageSetup.lyricsDefaultFontSize;
-    score.pageSetup.lyricsVerticalOffset = s.pageSetup.lyricsVerticalOffset;
-    score.pageSetup.martyriaDefaultColor = s.pageSetup.martyriaDefaultColor;
-    score.pageSetup.tempoDefaultColor = s.pageSetup.tempoDefaultColor;
-    score.pageSetup.modeKeyDefaultColor = s.pageSetup.modeKeyDefaultColor;
-    score.pageSetup.neumeDefaultFontSize = s.pageSetup.neumeDefaultFontSize;
-    score.pageSetup.neumeDefaultSpacing = s.pageSetup.neumeDefaultSpacing;
-    score.pageSetup.pageHeight = s.pageSetup.pageHeight;
-    score.pageSetup.pageWidth = s.pageSetup.pageWidth;
-    score.pageSetup.rightMargin = s.pageSetup.rightMargin;
-    score.pageSetup.topMargin = s.pageSetup.topMargin;
+
+    this.LoadPageSetup_v1(score.pageSetup, s.pageSetup);
 
     for (let e of s.staff.elements) {
       let element: ScoreElement = new EmptyElement();
@@ -278,13 +278,6 @@ export class SaveService {
         case ElementType_v1.Note:
           element = new NoteElement();
           this.LoadNote_v1(element as NoteElement, e as NoteElement_v1);
-          break;
-        case ElementType_v1.StaffText:
-          element = new StaffTextElement();
-          this.LoadStaffText_v1(
-            element as StaffTextElement,
-            e as StaffTextElement_v1,
-          );
           break;
         case ElementType_v1.TextBox:
           element = new TextBoxElement();
@@ -317,6 +310,63 @@ export class SaveService {
     return score;
   }
 
+  public static LoadPageSetup_v1(pageSetup: PageSetup, p: PageSetup_v1) {
+    pageSetup.pageHeight = p.pageHeight;
+    pageSetup.pageWidth = p.pageWidth;
+    pageSetup.topMargin = p.topMargin;
+    pageSetup.bottomMargin = p.bottomMargin;
+    pageSetup.leftMargin = p.leftMargin;
+    pageSetup.rightMargin = p.rightMargin;
+
+    pageSetup.lineHeight = p.lineHeight;
+
+    pageSetup.dropCapDefaultColor =
+      p.dropCapDefaultColor || pageSetup.dropCapDefaultColor;
+    pageSetup.dropCapDefaultFontFamily = p.dropCapDefaultFontFamily;
+    pageSetup.dropCapDefaultFontSize = p.dropCapDefaultFontSize;
+
+    pageSetup.lyricsDefaultColor =
+      p.lyricsDefaultColor || pageSetup.lyricsDefaultColor;
+    pageSetup.lyricsDefaultFontFamily = p.lyricsDefaultFontFamily;
+    pageSetup.lyricsDefaultFontSize = p.lyricsDefaultFontSize;
+    pageSetup.lyricsVerticalOffset = p.lyricsVerticalOffset;
+
+    pageSetup.martyriaDefaultColor =
+      p.martyriaDefaultColor || pageSetup.martyriaDefaultColor;
+    pageSetup.tempoDefaultColor =
+      p.tempoDefaultColor || pageSetup.tempoDefaultColor;
+    pageSetup.modeKeyDefaultColor =
+      p.modeKeyDefaultColor || pageSetup.modeKeyDefaultColor;
+    pageSetup.neumeDefaultColor =
+      p.neumeDefaultColor || pageSetup.neumeDefaultColor;
+
+    pageSetup.neumeDefaultFontSize = p.neumeDefaultFontSize;
+    pageSetup.neumeDefaultSpacing = p.neumeDefaultSpacing;
+
+    pageSetup.accidentalDefaultColor =
+      p.accidentalDefaultColor || pageSetup.accidentalDefaultColor;
+    pageSetup.fthoraDefaultColor =
+      p.fthoraDefaultColor || pageSetup.fthoraDefaultColor;
+    pageSetup.heteronDefaultColor =
+      p.heteronDefaultColor || pageSetup.heteronDefaultColor;
+    pageSetup.gorgonDefaultColor =
+      p.gorgonDefaultColor || pageSetup.gorgonDefaultColor;
+    pageSetup.measureBarDefaultColor =
+      p.measureBarDefaultColor || pageSetup.measureBarDefaultColor;
+    pageSetup.measureNumberDefaultColor =
+      p.measureNumberDefaultColor || pageSetup.measureNumberDefaultColor;
+    pageSetup.noteIndicatorDefaultColor =
+      p.noteIndicatorDefaultColor || pageSetup.noteIndicatorDefaultColor;
+    pageSetup.isonDefaultColor =
+      p.isonDefaultColor || pageSetup.isonDefaultColor;
+
+    pageSetup.pageSize = p.pageSize || pageSetup.pageSize;
+    pageSetup.pageSizeUnit = p.pageSizeUnit || pageSetup.pageSizeUnit;
+    pageSetup.landscape = p.landscape === true;
+
+    pageSetup.hyphenSpacing = p.hyphenSpacing;
+  }
+
   public static LoadDropCap_v1(element: DropCapElement, e: DropCapElement_v1) {
     element.color = e.color || null;
     element.content = e.content;
@@ -330,6 +380,7 @@ export class SaveService {
   ) {
     element.apostrophe = e.apostrophe === true;
     element.auto = e.auto === true;
+    element.alignRight = e.alignRight === true;
     element.note = e.note;
     element.rootSign = e.rootSign;
 
@@ -347,30 +398,46 @@ export class SaveService {
   }
 
   public static LoadNote_v1(element: NoteElement, e: NoteElement_v1) {
-    element.setQuantitativeNeume(e.quantitativeNeume);
+    element.quantitativeNeume = e.quantitativeNeume;
 
     if (e.timeNeume != null) {
-      element.setTimeNeume(e.timeNeume);
+      element.timeNeume = e.timeNeume;
     }
 
     if (e.gorgonNeume != null) {
-      element.setGorgonNeume(e.gorgonNeume);
+      element.gorgonNeume = e.gorgonNeume;
+    }
+
+    if (e.hyporoeGorgonNeume != null) {
+      element.hyporoeGorgonNeume = e.hyporoeGorgonNeume;
     }
 
     if (e.fthora != null) {
-      element.setFthora(e.fthora);
+      element.fthora = e.fthora;
     }
 
     if (e.accidental != null) {
-      element.setAccidental(e.accidental);
+      element.accidental = e.accidental;
     }
 
     if (e.vocalExpressionNeume != null) {
-      element.setVocalExpressionNeume(e.vocalExpressionNeume);
+      element.vocalExpressionNeume = e.vocalExpressionNeume;
     }
 
     if (e.measureBar != null) {
       element.measureBar = e.measureBar;
+    }
+
+    if (e.measureNumber != null) {
+      element.measureNumber = e.measureNumber;
+    }
+
+    if (e.noteIndicator != null) {
+      element.noteIndicator = e.noteIndicator;
+    }
+
+    if (e.ison != null) {
+      element.ison = e.ison;
     }
 
     if (e.lyrics != null) {
@@ -379,16 +446,7 @@ export class SaveService {
 
     element.isMelisma = e.isMelisma === true;
     element.isMelismaStart = e.isMelismaStart === true;
-  }
-
-  public static LoadStaffText_v1(
-    element: StaffTextElement,
-    e: StaffTextElement_v1,
-  ) {
-    element.text = e.text;
-    element.offset = new ScoreElementOffset();
-    element.offset.x = e.offset.x;
-    element.offset.y = e.offset.y;
+    element.isHyphen = e.isHyphen === true;
   }
 
   public static LoadTextBox_v1(element: TextBoxElement, e: TextBoxElement_v1) {
@@ -401,6 +459,7 @@ export class SaveService {
   }
 
   public static LoadModeKey_v1(element: ModeKeyElement, e: ModeKeyElement_v1) {
+    element.templateId = e.templateId || null;
     element.alignment = e.alignment;
     element.mode = e.mode;
     element.scale = e.scale;
@@ -414,6 +473,5 @@ export class SaveService {
     element.martyrias = e.martyrias.map((x) => x);
     element.color = e.color;
     element.fontSize = e.fontSize;
-    element.height = e.height;
   }
 }

@@ -1,10 +1,17 @@
+import { PageSize } from '@/models/PageSetup';
+
 export enum IpcMainChannels {
   FileMenuNewScore = 'FileMenuNewScore',
   FileMenuOpenScore = 'FileMenuOpenScore',
+  FileMenuPrint = 'FileMenuPrint',
   FileMenuSave = 'FileMenuSave',
   FileMenuSaveAs = 'FileMenuSaveAs',
 
-  FileMenuInsertNeume = 'FileMenuInsertNeume',
+  FileMenuPageSetup = 'FileMenuPageSetup',
+
+  FileMenuUndo = 'FileMenuUndo',
+  FileMenuRedo = 'FileMenuRedo',
+
   FileMenuInsertTextBox = 'FileMenuInsertTextBox',
   FileMenuInsertModeKey = 'FileMenuInsertModeKey',
   FileMenuInsertDropCap = 'FileMenuInsertDropCap',
@@ -15,16 +22,30 @@ export enum IpcMainChannels {
 }
 
 export enum IpcRendererChannels {
+  EditorFinishedLoading = 'EditorFinishedLoading',
+
+  FileMenuPrintReply = 'FileMenuPrintReply',
+
   FileMenuSaveReply = 'FileMenuSaveReply',
   FileMenuSaveAsReply = 'FileMenuSaveAsReply',
 
   SetHasUnsavedChanges = 'SetHasUnsavedChanges',
   SetFilePath = 'SetFilePath',
+
+  SetCanUndo = 'SetCanUndo',
+  SetCanRedo = 'SetCanRedo',
+
+  ShowErrorBox = 'ShowErrorBox',
 }
 
 export interface FileMenuOpenScoreArgs {
   data: string;
   filePath: string;
+}
+
+export interface FileMenuPrintReplyArgs {
+  pageSize: PageSize;
+  landscape: boolean;
 }
 
 export interface FileMenuSaveAsArgs {
@@ -37,4 +58,9 @@ export interface FileMenuSaveAsReplyArgs {
 
 export interface FileMenuSaveReplyArgs {
   data: string;
+}
+
+export interface ShowErrorBoxArgs {
+  title: string;
+  content: string;
 }

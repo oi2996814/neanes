@@ -1,6 +1,6 @@
 import { QuantitativeNeume } from '@/models/Neumes';
 
-export const neumeValueMap = new Map<QuantitativeNeume, number>([
+const neumeValueMap = new Map<QuantitativeNeume, number>([
   [QuantitativeNeume.Ison, 0],
 
   [QuantitativeNeume.Oligon, 1],
@@ -37,18 +37,34 @@ export const neumeValueMap = new Map<QuantitativeNeume, number>([
 
   [QuantitativeNeume.OligonPlusKentemata, 2],
   [QuantitativeNeume.KentemataPlusOligon, 2],
+  [QuantitativeNeume.KentemataPlusOligonSpecial, 2],
   [QuantitativeNeume.OligonPlusIsonPlusKentemata, 1],
-  [QuantitativeNeume.OligonPlusApostrophos, -1],
   [QuantitativeNeume.OligonPlusApostrophosPlusKentemata, 0],
+  [QuantitativeNeume.OligonPlusHyporoePlusKentemata, -1],
+  [QuantitativeNeume.OligonPlusKentemataPlusHypsiliLeft, 6],
+  [QuantitativeNeume.OligonPlusKentemataPlusHypsiliRight, 5],
   [QuantitativeNeume.OligonPlusElaphronPlusKentemata, -1],
+  [QuantitativeNeume.OligonPlusRunningElaphronPlusKentemata, -2],
   [QuantitativeNeume.OligonPlusElaphronPlusApostrophosPlusKentemata, -2],
   [QuantitativeNeume.OligonPlusHamiliPlusKentemata, -3],
+
   [QuantitativeNeume.RunningElaphron, -2],
   [QuantitativeNeume.Hyporoe, -2],
+  [QuantitativeNeume.PetastiPlusRunningElaphron, -2],
+  [QuantitativeNeume.PetastiPlusHyporoe, -2],
+
+  [QuantitativeNeume.OligonPlusIson, 0],
+  [QuantitativeNeume.OligonPlusApostrophos, -1],
+  [QuantitativeNeume.OligonPlusElaphron, -2],
+  [QuantitativeNeume.OligonPlusElaphronPlusApostrophos, -3],
+  [QuantitativeNeume.OligonPlusHypsili, -4],
 
   [QuantitativeNeume.Kentima, 2],
   [QuantitativeNeume.OligonPlusKentima, 2],
   [QuantitativeNeume.Kentemata, 1],
+
+  [QuantitativeNeume.DoubleApostrophos, -2],
+  [QuantitativeNeume.IsonPlusApostrophos, -1],
 
   [QuantitativeNeume.Cross, 0],
   [QuantitativeNeume.VareiaDotted, 0],

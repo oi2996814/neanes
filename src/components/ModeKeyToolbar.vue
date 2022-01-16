@@ -1,42 +1,52 @@
 <template>
   <div class="mode-key-toolbar">
-    <input
-      type="number"
-      min="4"
-      max="100"
-      step="1"
-      v-model="fontSize"
-      @change="$emit('scoreUpdated')"
-    />
+    <input type="number" min="4" max="100" step="1" v-model.lazy="fontSize" />
+    <span class="space"></span>
     <input
       type="color"
       list="presetColors"
-      v-model="element.color"
-      @change="$emit('scoreUpdated')"
+      :value="element.color"
+      @change="$emit('update:color', $event.target.value)"
     />
     <datalist id="presetColors">
       <option>#000000</option>
-      <option>#ff0000</option>
-      <option>#0000ff</option>
+      <option>#ED0000</option>
+      <option>#0000FF</option>
     </datalist>
-    <button @click="align('left')">
+    <span class="space"></span>
+    <button
+      class="icon-btn"
+      :class="{ selected: element.alignment === TextBoxAlignment.Left }"
+      @click="$emit('update:alignment', TextBoxAlignment.Left)"
+    >
       <img
+        class="icon-btn-img"
         src="@/assets/alignleft.svg"
         width="32"
         height="32"
         title="Align Left"
       />
     </button>
-    <button @click="align('center')">
+    <button
+      class="icon-btn"
+      :class="{ selected: element.alignment === TextBoxAlignment.Center }"
+      @click="$emit('update:alignment', TextBoxAlignment.Center)"
+    >
       <img
+        class="icon-btn-img"
         src="@/assets/aligncenter.svg"
         width="32"
         height="32"
         title="Align Center"
       />
     </button>
-    <button @click="align('right')">
+    <button
+      class="icon-btn"
+      :class="{ selected: element.alignment === TextBoxAlignment.Right }"
+      @click="$emit('update:alignment', TextBoxAlignment.Right)"
+    >
       <img
+        class="icon-btn-img"
         src="@/assets/alignright.svg"
         width="32"
         height="32"
@@ -44,7 +54,7 @@
       />
     </button>
     <span class="space" />
-    <button @click="$emit('openModeKeyDialog')">Change Key</button>
+    <button @click="$emit('open-mode-key-dialog')">Change Key</button>
   </div>
 </template>
 
@@ -58,18 +68,25 @@ import { Unit } from '@/utils/Unit';
 })
 export default class ModeKeyToolbar extends Vue {
   @Prop() element!: ModeKeyElement;
+  TextBoxAlignment = TextBoxAlignment;
 
   private get fontSize() {
-    return (this.element.fontSize * 72) / 96;
+    return Unit.toPt(this.element.fontSize);
   }
 
   private set fontSize(value: number) {
-    this.element.fontSize = Unit.FromPt(value);
-  }
+    // Round to nearest 0.5
+    const valueRounded = Math.round(value * 2) / 2;
 
-  private align(alignment: TextBoxAlignment) {
-    this.element.alignment = alignment;
-    this.$emit('scoreUpdated');
+    this.$emit(
+      'update:fontSize',
+      Math.min(
+        Math.max(Unit.fromPt(valueRounded), Unit.fromPt(4)),
+        Unit.fromPt(100),
+      ),
+    );
+
+    this.$forceUpdate();
   }
 }
 </script>
@@ -78,9 +95,24 @@ export default class ModeKeyToolbar extends Vue {
 <style scoped>
 .mode-key-toolbar {
   display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+
   background-color: lightgray;
 
   padding: 0.25rem;
+}
+
+.icon-btn {
+  height: 32px;
+  width: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn.selected {
+  background-color: var(--btn-color-selected);
 }
 
 .space {

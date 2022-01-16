@@ -63,7 +63,7 @@
               :class="{ selected: selectedModeKey === template }"
               :key="index"
             >
-              <ModeKey :element="template" />
+              <ModeKey :element="template" :pageSetup="pageSetup" />
             </li>
           </ul>
         </div>
@@ -74,9 +74,9 @@
           :disabled="selectedModeKey == null"
           @click="updateModeKey"
         >
-          Select
+          Update
         </button>
-        <button @click="$emit('close')">Cancel</button>
+        <button class="cancel-btn" @click="$emit('close')">Cancel</button>
       </div>
     </div>
   </ModalDialog>
@@ -84,37 +84,53 @@
 
 <script lang="ts">
 import { Component, Prop, Vue } from 'vue-property-decorator';
-import { ModeKeyElement } from '@/models/Element';
+import { ModeKeyElement, TextBoxAlignment } from '@/models/Element';
 import { modeKeyTemplates } from '@/models/ModeKeys';
 import ModalDialog from '@/components/ModalDialog.vue';
 import ModeKey from '@/components/ModeKey.vue';
+import { PageSetup } from '@/models/PageSetup';
 
 @Component({
   components: { ModalDialog, ModeKey },
 })
 export default class ModeKeyDialog extends Vue {
   @Prop() element!: ModeKeyElement;
+  @Prop() pageSetup!: PageSetup;
   private selectedMode: number | null = null;
   private selectedModeKey: ModeKeyElement | null = null;
 
   created() {
-    this.selectedMode = this.element.mode;
+    this.selectMode(this.element.mode);
+
+    window.addEventListener('keydown', this.onKeyDown);
+  }
+
+  beforeDestroy() {
+    window.removeEventListener('keydown', this.onKeyDown);
   }
 
   get modeKeyTemplatesForSelectedMode() {
     return modeKeyTemplates
       .filter((x) => x.mode === this.selectedMode)
-      .map((x) => ModeKeyElement.createFromTemplate(x));
+      .map((x) => ModeKeyElement.createFromTemplate(x, TextBoxAlignment.Left));
+  }
+
+  onKeyDown(event: KeyboardEvent) {
+    if (event.code === 'Escape') {
+      this.$emit('close');
+    }
   }
 
   selectMode(mode: number) {
     this.selectedMode = mode;
-    this.selectedModeKey = this.modeKeyTemplatesForSelectedMode[0];
+    this.selectedModeKey =
+      this.modeKeyTemplatesForSelectedMode.find(
+        (x) => x.templateId === this.element.templateId,
+      ) || this.modeKeyTemplatesForSelectedMode[0];
   }
 
   updateModeKey() {
-    this.element.updateFrom(this.selectedModeKey!);
-    this.$emit('scoreUpdated');
+    this.$emit('update', this.selectedModeKey);
     this.$emit('close');
   }
 }
@@ -122,6 +138,10 @@ export default class ModeKeyDialog extends Vue {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.container {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
 .pane-container {
   display: flex;
   width: 420px;
@@ -129,18 +149,20 @@ export default class ModeKeyDialog extends Vue {
 }
 
 .left-pane {
-  height: 275px;
+  height: 290px;
 }
 
 .right-pane {
   flex: 1;
   overflow: auto;
-  height: 275px;
+  height: 290px;
 }
 
 .mode-key-container {
   border: none;
-  width: auto;
+  width: auto !important;
+
+  --zoom: 1;
 }
 
 .header {

@@ -2,30 +2,30 @@
   <div class="main-toolbar">
     <button
       class="entry-mode-btn"
-      @click="$emit('updateEntryMode', EntryMode.Auto)"
+      @click="$emit('update:entryMode', EntryMode.Auto)"
       :class="{ on: entryMode === EntryMode.Auto }"
     >
       Auto
     </button>
     <button
       class="entry-mode-btn"
-      @click="$emit('updateEntryMode', EntryMode.Insert)"
+      @click="$emit('update:entryMode', EntryMode.Insert)"
       :class="{ on: entryMode === EntryMode.Insert }"
     >
       Insert
     </button>
     <button
       class="entry-mode-btn"
-      @click="$emit('updateEntryMode', EntryMode.Edit)"
+      @click="$emit('update:entryMode', EntryMode.Edit)"
       :class="{ on: entryMode === EntryMode.Edit }"
     >
       Single
     </button>
     <span class="space"></span>
     <button
-      title="Insert Martyria"
+      title="Insert martyria"
       class="neume-button"
-      @click="$emit('addAutoMartyria')"
+      @click="$emit('add-auto-martyria')"
     >
       <span class="martyria">
         <Neume class="red neume" :neume="Note.Pa" />
@@ -33,72 +33,85 @@
       </span>
     </button>
     <span class="space"></span>
-    <button
-      class="neume-button"
-      @click="$emit('updateTempo', TempoSign.VerySlow)"
+    <div
+      class="tempo-container"
+      @mousedown="openTempoMenu"
+      @mouseleave="selectedTempoNeume = null"
     >
-      <Neume class="red neume tempo" :neume="TempoSign.VerySlow" />
-    </button>
-    <button class="neume-button" @click="$emit('updateTempo', TempoSign.Slow)">
-      <Neume class="red neume tempo" :neume="TempoSign.Slow" />
-    </button>
+      <button class="neume-button">
+        <Neume class="red neume tempo" :neume="TempoSign.VerySlow" />
+      </button>
+      <div class="tempo-menu" v-if="showTempoMenu">
+        <div
+          class="tempo-menu-item"
+          v-for="tempo in tempoMenuItems"
+          :key="tempo"
+          @mouseenter="selectedTempoNeume = tempo"
+        >
+          <Neume class="red neume tempo" :neume="tempo" />
+        </div>
+      </div>
+    </div>
+    <span class="space"></span>
     <button
-      class="neume-button"
-      @click="$emit('updateTempo', TempoSign.Medium)"
+      title="Insert drop cap"
+      class="icon-btn"
+      @click="$emit('add-drop-cap')"
     >
-      <Neume class="red neume tempo" :neume="TempoSign.Medium" />
-    </button>
-    <button
-      class="neume-button"
-      @click="$emit('updateTempo', TempoSign.Moderate)"
-    >
-      <Neume class="red neume tempo" :neume="TempoSign.Moderate" />
-    </button>
-    <button class="neume-button" @click="$emit('updateTempo', TempoSign.Quick)">
-      <Neume class="red neume tempo" :neume="TempoSign.Quick" />
-    </button>
-    <button
-      class="neume-button"
-      @click="$emit('updateTempo', TempoSign.VeryQuick)"
-    >
-      <Neume class="red neume tempo" :neume="TempoSign.VeryQuick" />
+      <img src="@/assets/dropcap.svg" width="24" height="24" />
     </button>
     <span class="space"></span>
     <button
-      title="Insert Line Break After Selected Element"
-      @click="$emit('updateLineBreak')"
+      class="icon-btn line-break-btn"
+      title="Insert or remove line break after selected element"
+      @click="$emit('toggle-line-break')"
     >
-      Line Break
+      &#182;
     </button>
     <button
-      title="Insert Page Break After Selected Element"
-      @click="$emit('updatePageBreak')"
+      class="icon-btn"
+      title="Insert or remove page break after selected element"
+      @click="$emit('toggle-page-break')"
     >
-      Page Break
+      <img src="@/assets/pagebreak.svg" width="24" height="24" />
     </button>
     <span class="space"></span>
     <button
-      class="red"
-      title="Delete Selected Element"
-      @click="$emit('deleteSelectedElement')"
+      class="red icon-btn"
+      title="Delete selected element"
+      @click="$emit('delete-selected-element')"
     >
       X
     </button>
+    <span class="space"></span>
+    <div class="zoom-container" @focusout="showZoomMenu = false" tabindex="-1">
+      <input
+        class="zoom"
+        :value="zoomDisplay"
+        @change="updateZoom($event.target.value)"
+      />
+      <span class="zoom-arrow" @click="showZoomMenu = !showZoomMenu"
+        >&#x25BE;</span
+      >
+      <div class="zoom-menu" v-if="showZoomMenu">
+        <div class="zoom-menu-item" @click="updateZoom('Fit')">Fit</div>
+        <div class="zoom-menu-separator"></div>
+        <div
+          v-for="option in zoomOptions"
+          :key="option"
+          class="zoom-menu-item"
+          @click="updateZoom(option)"
+        >
+          {{ option }}%
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script lang="ts">
 import { Component, Prop, Vue } from 'vue-property-decorator';
-import { NoteElement } from '@/models/Element';
-import {
-  Accidental,
-  GorgonNeume,
-  Note,
-  RootSign,
-  TempoSign,
-  TimeNeume,
-  VocalExpressionNeume,
-} from '@/models/Neumes';
+import { Note, RootSign, TempoSign } from '@/models/Neumes';
 import Neume from './Neume.vue';
 import { EntryMode } from './Editor.vue';
 
@@ -107,13 +120,74 @@ import { EntryMode } from './Editor.vue';
     Neume,
   },
 })
-export default class NeumeToolbar extends Vue {
-  @Prop() element!: NoteElement;
+export default class MainToolbar extends Vue {
   @Prop() entryMode!: EntryMode;
+  @Prop() zoom!: number;
+  @Prop() zoomToFit!: boolean;
   Note = Note;
   RootSign = RootSign;
   TempoSign = TempoSign;
   EntryMode = EntryMode;
+
+  showZoomMenu: boolean = false;
+  showTempoMenu: boolean = false;
+
+  selectedTempoNeume: TempoSign | null = null;
+
+  zoomOptions: number[] = [50, 75, 90, 100, 125, 150, 200];
+
+  tempoMenuItems: TempoSign[] = [
+    TempoSign.VerySlow,
+    TempoSign.Slow,
+    TempoSign.Medium,
+    TempoSign.Moderate,
+    TempoSign.Quick,
+    TempoSign.VeryQuick,
+  ];
+
+  get zoomDisplay() {
+    return this.zoomToFit ? 'Fit' : (this.zoom * 100).toFixed(0) + '%';
+  }
+
+  beforeDestroy() {
+    window.removeEventListener('mouseup', this.onTempoMouseUp);
+  }
+
+  updateZoom(value: string) {
+    this.showZoomMenu = false;
+
+    if (value === 'Fit') {
+      this.$emit('update:zoomToFit', true);
+      return;
+    }
+
+    let valueAsNumber = parseInt(value);
+
+    if (Number.isNaN(valueAsNumber)) {
+      valueAsNumber = 100;
+    }
+
+    this.$emit('update:zoom', valueAsNumber / 100);
+
+    this.showZoomMenu = false;
+
+    this.$forceUpdate();
+  }
+
+  openTempoMenu() {
+    this.showTempoMenu = true;
+    window.addEventListener('mouseup', this.onTempoMouseUp);
+  }
+
+  onTempoMouseUp() {
+    if (this.selectedTempoNeume) {
+      this.$emit('add-tempo', this.selectedTempoNeume);
+    }
+
+    this.showTempoMenu = false;
+
+    window.removeEventListener('mouseup', this.onTempoMouseUp);
+  }
 }
 </script>
 
@@ -121,13 +195,18 @@ export default class NeumeToolbar extends Vue {
 <style scoped>
 .main-toolbar {
   display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+
   background-color: lightgray;
 
   padding: 0.25rem;
+
+  --btn-size: 32px;
 }
 
 .entry-mode-btn.on {
-  background-color: lightsteelblue;
+  background-color: var(--btn-color-selected);
 }
 
 .red {
@@ -138,11 +217,25 @@ export default class NeumeToolbar extends Vue {
   font-size: 25px;
 }
 
+.icon-btn {
+  height: var(--btn-size);
+  width: var(--btn-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.line-break-btn {
+  font-size: 20px;
+}
+
 .neume-button {
-  height: 32px;
-  width: 32px;
+  height: var(--btn-size);
+  width: var(--btn-size);
 
   position: relative;
+
+  overflow: hidden;
 }
 
 .space {
@@ -160,5 +253,73 @@ export default class NeumeToolbar extends Vue {
   top: -12px;
   left: -1px;
   font-size: 20px;
+}
+
+.zoom {
+  width: 40px;
+  padding: 1px 2px;
+  font-family: 'Arial';
+  font-size: 13px;
+}
+
+.zoom-container {
+  position: relative;
+}
+
+.zoom-arrow {
+  display: inline-block;
+  cursor: default;
+  height: 21px;
+}
+
+.zoom-menu {
+  position: absolute;
+  z-index: 999;
+  background-color: white;
+  border: 1px solid black;
+}
+
+.zoom-menu-item {
+  padding: 1px 4px;
+  font-family: 'Arial';
+  font-size: 13px;
+  cursor: default;
+  width: 38px;
+}
+
+.zoom-menu-item:hover {
+  background-color: aliceblue;
+}
+
+.zoom-menu-separator {
+  border-top: 1px solid #666;
+}
+
+.tempo-container {
+  display: flex;
+}
+
+.tempo-menu {
+  position: absolute;
+  z-index: 999;
+  background-color: white;
+  border: 1px solid black;
+  box-sizing: border-box;
+  width: var(--btn-size);
+}
+
+.tempo-menu-item {
+  height: var(--btn-size);
+  width: 100%;
+  padding: 2px 0;
+  box-sizing: border-box;
+  text-align: center;
+  user-select: none;
+  overflow: hidden;
+  position: relative;
+}
+
+.tempo-menu-item:hover {
+  background-color: aliceblue;
 }
 </style>

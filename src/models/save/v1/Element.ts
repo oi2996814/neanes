@@ -1,4 +1,3 @@
-import { MeasureBar } from '@/models/Neumes';
 import {
   TimeNeume,
   GorgonNeume,
@@ -10,6 +9,10 @@ import {
   Accidental,
   ModeSign,
   TempoSign,
+  MeasureBar,
+  MeasureNumber,
+  NoteIndicator,
+  Ison,
 } from '@/models/save/v1/Neumes';
 import { Scale, ScaleNote } from './Scales';
 
@@ -18,7 +21,6 @@ export enum ElementType {
   Martyria = 'Martyria',
   Empty = 'Empty',
   TextBox = 'TextBox',
-  StaffText = 'StaffText',
   DropCap = 'DropCap',
   ModeKey = 'ModeKey',
   Tempo = 'Tempo',
@@ -35,13 +37,18 @@ export class NoteElement extends ScoreElement {
   public quantitativeNeume: QuantitativeNeume = QuantitativeNeume.Ison;
   public timeNeume: TimeNeume | undefined = undefined;
   public gorgonNeume: GorgonNeume | undefined = undefined;
+  public hyporoeGorgonNeume: GorgonNeume | undefined = undefined;
   public vocalExpressionNeume: VocalExpressionNeume | undefined = undefined;
   public fthora: Fthora | undefined = undefined;
   public accidental: Accidental | undefined = undefined;
   public measureBar: MeasureBar | undefined = undefined;
+  public measureNumber: MeasureNumber | undefined = undefined;
+  public noteIndicator: NoteIndicator | undefined = undefined;
+  public ison: Ison | undefined = undefined;
   public lyrics: string | undefined = undefined;
   public isMelisma: boolean | undefined = undefined;
   public isMelismaStart: boolean | undefined = undefined;
+  public isHyphen: boolean | undefined = undefined;
 }
 
 export class MartyriaElement extends ScoreElement {
@@ -52,6 +59,7 @@ export class MartyriaElement extends ScoreElement {
   public apostrophe: boolean | undefined = undefined;
   public fthora: Fthora | undefined = undefined;
   public measureBar: MeasureBar | undefined = undefined;
+  public alignRight: boolean | undefined = undefined;
 }
 
 export class TempoElement extends ScoreElement {
@@ -74,7 +82,7 @@ export enum TextBoxAlignment {
 export class TextBoxElement extends ScoreElement {
   public readonly elementType: ElementType = ElementType.TextBox;
   public alignment: TextBoxAlignment = TextBoxAlignment.Left;
-  public color: string = 'black';
+  public color: string = '#000000';
   public content: string = '';
   public fontSize: number = 16;
   public fontFamily: string = 'Omega';
@@ -83,6 +91,7 @@ export class TextBoxElement extends ScoreElement {
 
 export class ModeKeyElement extends ScoreElement {
   public readonly elementType: ElementType = ElementType.ModeKey;
+  public templateId: number | undefined = undefined;
   public alignment: TextBoxAlignment = TextBoxAlignment.Center;
   public mode: number = 1;
   public scale: Scale = Scale.Diatonic;
@@ -94,15 +103,9 @@ export class ModeKeyElement extends ScoreElement {
   public fthora2: Fthora | undefined = undefined;
   public quantitativeNeumeTop: ModeSign | undefined = undefined;
   public quantitativeNeumeRight: QuantitativeNeume | undefined = undefined;
-  public color: string = 'black';
+  public color: string = '#000000';
   public fontSize: number = 16;
   public height: number = 20;
-}
-
-export class StaffTextElement extends ScoreElement {
-  public readonly elementType: ElementType = ElementType.StaffText;
-  public offset: ScoreElementOffset = new ScoreElementOffset();
-  public text: string = 'text';
 }
 
 export class DropCapElement extends ScoreElement {

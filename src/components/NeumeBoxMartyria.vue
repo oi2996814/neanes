@@ -8,9 +8,14 @@
         v-if="hasFthora"
         :neume="neume.fthora"
         :offset="fthoraOffset"
+        :style="fthoraStyle"
       ></Neume>
       <Neume v-if="neume.apostrophe" :neume="Note.Apostrophe"></Neume>
-      <Neume v-if="hasMeasureBar" :neume="neume.measureBar" class="red"></Neume>
+      <Neume
+        v-if="hasMeasureBar"
+        :neume="neume.measureBar"
+        :style="measureBarStyle"
+      ></Neume>
     </template>
   </div>
 </template>
@@ -20,13 +25,14 @@ import { Component, Prop, Vue } from 'vue-property-decorator';
 import { MartyriaElement } from '@/models/Element';
 import { neumeMap } from '@/models/NeumeMappings';
 import Neume from '@/components/Neume.vue';
-import { store } from '@/store';
 import { Note } from '@/models/Neumes';
 import {
   getFthoraAdjustments,
   getRootSignAdjustments,
   NeumeAdjustmentOffset,
 } from '@/models/NeumeAdjustments';
+import { withZoom } from '@/utils/withZoom';
+import { PageSetup } from '@/models/PageSetup';
 
 @Component({
   components: {
@@ -35,11 +41,9 @@ import {
 })
 export default class NeumeBoxMartyria extends Vue {
   @Prop() neume!: MartyriaElement;
-  Note = Note;
+  @Prop() pageSetup!: PageSetup;
 
-  get pageSetup() {
-    return store.state.score.pageSetup;
-  }
+  Note = Note;
 
   get noteMapping() {
     return neumeMap.get(this.neume.note!)!;
@@ -60,7 +64,19 @@ export default class NeumeBoxMartyria extends Vue {
   get style() {
     return {
       color: this.pageSetup.martyriaDefaultColor,
-      fontSize: this.pageSetup.neumeDefaultFontSize + 'px',
+      fontSize: withZoom(this.pageSetup.neumeDefaultFontSize),
+    } as CSSStyleDeclaration;
+  }
+
+  get fthoraStyle() {
+    return {
+      color: this.pageSetup.fthoraDefaultColor,
+    } as CSSStyleDeclaration;
+  }
+
+  get measureBarStyle() {
+    return {
+      color: this.pageSetup.measureBarDefaultColor,
     } as CSSStyleDeclaration;
   }
 

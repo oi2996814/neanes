@@ -2,6 +2,7 @@ import { Fthora, ModeSign, QuantitativeNeume } from '@/models/Neumes';
 import { Scale, ScaleNote } from './Scales';
 
 export interface ModeKeyTemplate {
+  id: number;
   mode: number;
   scale: Scale;
   scaleNote: ScaleNote;
@@ -16,6 +17,7 @@ export interface ModeKeyTemplate {
 
 export const modeKeyTemplates: ModeKeyTemplate[] = [
   {
+    id: 100,
     mode: 1,
     scale: Scale.Diatonic,
     scaleNote: ScaleNote.Pa,
@@ -23,6 +25,7 @@ export const modeKeyTemplates: ModeKeyTemplate[] = [
     note: ModeSign.Pa,
   },
   {
+    id: 101,
     mode: 1,
     scale: Scale.Diatonic,
     scaleNote: ScaleNote.Ke,
@@ -30,6 +33,7 @@ export const modeKeyTemplates: ModeKeyTemplate[] = [
     note: ModeSign.Ke,
   },
   {
+    id: 102,
     mode: 1,
     scale: Scale.Diatonic,
     scaleNote: ScaleNote.Ke,
@@ -38,38 +42,43 @@ export const modeKeyTemplates: ModeKeyTemplate[] = [
     quantitativeNeumeRight: QuantitativeNeume.OligonPlusHypsiliRight,
   },
   {
+    id: 103,
     mode: 1,
     scale: Scale.Diatonic,
     scaleNote: ScaleNote.Ke,
     martyrias: [ModeSign.AlphaWithDeltaHat],
     note: ModeSign.Ke,
-    fthora: Fthora.SoftChromaticThi_TopRight,
+    fthora: Fthora.SoftChromaticThi_Top,
   },
   {
+    id: 200,
     mode: 2,
     scale: Scale.SoftChromatic,
     scaleNote: ScaleNote.Thi,
     martyrias: [ModeSign.SoftChromatic2],
     note: ModeSign.Thi,
-    fthora: Fthora.SoftChromaticThi_TopRight,
+    fthora: Fthora.SoftChromaticThi_Top,
   },
   {
+    id: 201,
     mode: 2,
     scale: Scale.SoftChromatic,
     scaleNote: ScaleNote.Vou,
     martyrias: [ModeSign.SoftChromatic2],
     note: ModeSign.Vou,
-    fthora: Fthora.SoftChromaticThi_TopRight,
+    fthora: Fthora.SoftChromaticThi_Top,
   },
   {
+    id: 202,
     mode: 2,
     scale: Scale.HardChromatic,
     scaleNote: ScaleNote.Pa,
     martyrias: [ModeSign.SoftChromatic2],
     note: ModeSign.Pa,
-    fthora: Fthora.HardChromaticPa_TopRight,
+    fthora: Fthora.HardChromaticPa_Top,
   },
   {
+    id: 300,
     mode: 3,
     scale: Scale.Diatonic,
     scaleNote: ScaleNote.Ga,
@@ -77,6 +86,7 @@ export const modeKeyTemplates: ModeKeyTemplate[] = [
     note: ModeSign.Ga,
   },
   {
+    id: 301,
     mode: 3,
     scale: Scale.Diatonic,
     scaleNote: ScaleNote.Ga,
@@ -84,6 +94,7 @@ export const modeKeyTemplates: ModeKeyTemplate[] = [
     note: ModeSign.Ga,
   },
   {
+    id: 302,
     mode: 3,
     scale: Scale.Diatonic,
     scaleNote: ScaleNote.Pa,
@@ -92,14 +103,16 @@ export const modeKeyTemplates: ModeKeyTemplate[] = [
     quantitativeNeumeRight: QuantitativeNeume.RunningElaphron,
   },
   {
+    id: 303,
     mode: 3,
     scale: Scale.Diatonic,
     scaleNote: ScaleNote.Ga,
     martyrias: [ModeSign.Nana],
     note: ModeSign.Ga,
-    fthora: Fthora.DiatonicNiLow_TopRight,
+    fthora: Fthora.DiatonicNiLow_Top,
   },
   {
+    id: 400,
     mode: 4,
     scale: Scale.Diatonic,
     scaleNote: ScaleNote.Thi,
@@ -107,14 +120,16 @@ export const modeKeyTemplates: ModeKeyTemplate[] = [
     note: ModeSign.Thi,
   },
   {
+    id: 401,
     mode: 4,
     scale: Scale.SoftChromatic,
     scaleNote: ScaleNote.Thi,
     martyrias: [ModeSign.DeltaWithDeltaHat],
     note: ModeSign.Thi,
-    fthora: Fthora.SoftChromaticThi_TopRight,
+    fthora: Fthora.SoftChromaticThi_Top,
   },
   {
+    id: 402,
     mode: 4,
     scale: Scale.Diatonic,
     scaleNote: ScaleNote.Pa,
@@ -122,6 +137,7 @@ export const modeKeyTemplates: ModeKeyTemplate[] = [
     note: ModeSign.Pa,
   },
   {
+    id: 403,
     mode: 4,
     scale: Scale.Diatonic,
     scaleNote: ScaleNote.Vou,
@@ -129,6 +145,7 @@ export const modeKeyTemplates: ModeKeyTemplate[] = [
     quantitativeNeumeRight: QuantitativeNeume.RunningElaphron,
   },
   {
+    id: 404,
     mode: 4,
     scale: Scale.Diatonic,
     scaleNote: ScaleNote.Vou,
@@ -136,6 +153,7 @@ export const modeKeyTemplates: ModeKeyTemplate[] = [
     note: ModeSign.Vou,
   },
   {
+    id: 500,
     mode: 5,
     scale: Scale.Diatonic,
     scaleNote: ScaleNote.Pa,
@@ -143,6 +161,7 @@ export const modeKeyTemplates: ModeKeyTemplate[] = [
     note: ModeSign.Pa,
   },
   {
+    id: 501,
     mode: 5,
     scale: Scale.Diatonic,
     scaleNote: ScaleNote.Ke,
@@ -151,41 +170,46 @@ export const modeKeyTemplates: ModeKeyTemplate[] = [
     quantitativeNeumeTop: ModeSign.OligonPlusHypsili,
   },
   {
+    id: 600,
     mode: 6,
     scale: Scale.HardChromatic,
     scaleNote: ScaleNote.Pa,
     martyrias: [ModeSign.SoftChromatic6],
     note: ModeSign.Pa,
-    fthora: Fthora.HardChromaticPa_TopRight,
+    fthora: Fthora.HardChromaticPa_Top,
   },
   {
+    id: 601,
     mode: 6,
     scale: Scale.SoftChromatic,
     scaleNote: ScaleNote.Vou,
     martyrias: [ModeSign.SoftChromatic6],
     note: ModeSign.Vou,
-    fthora: Fthora.SoftChromaticThi_TopRight,
+    fthora: Fthora.SoftChromaticThi_Top,
   },
   {
+    id: 602,
     mode: 6,
     scale: Scale.SoftChromatic,
-    scaleNote: ScaleNote.Vou,
+    scaleNote: ScaleNote.Thi,
     martyrias: [ModeSign.SoftChromatic6],
     note: ModeSign.Vou,
-    fthora: Fthora.SoftChromaticThi_TopRight,
+    fthora: Fthora.SoftChromaticThi_Top,
     quantitativeNeumeRight: QuantitativeNeume.KentemataPlusOligon,
   },
   {
+    id: 603,
     mode: 6,
     scale: Scale.HardChromatic,
     scaleNote: ScaleNote.Thi,
     martyrias: [ModeSign.SoftChromatic6],
     note: ModeSign.Pa,
     note2: ModeSign.Thi,
-    fthora: Fthora.HardChromaticPa_TopRight,
+    fthora: Fthora.HardChromaticPa_Top,
     quantitativeNeumeTop: ModeSign.OligonPlusKentima,
   },
   {
+    id: 700,
     mode: 7,
     scale: Scale.Diatonic,
     scaleNote: ScaleNote.Ga,
@@ -193,6 +217,7 @@ export const modeKeyTemplates: ModeKeyTemplate[] = [
     note: ModeSign.Ga,
   },
   {
+    id: 701,
     mode: 7,
     scale: Scale.Diatonic,
     scaleNote: ScaleNote.Zo,
@@ -200,6 +225,7 @@ export const modeKeyTemplates: ModeKeyTemplate[] = [
     note: ModeSign.Zo,
   },
   {
+    id: 800,
     mode: 8,
     scale: Scale.Diatonic,
     scaleNote: ScaleNote.Ni,
@@ -207,14 +233,16 @@ export const modeKeyTemplates: ModeKeyTemplate[] = [
     note: ModeSign.Ni,
   },
   {
+    id: 801,
     mode: 8,
     scale: Scale.Diatonic,
     scaleNote: ScaleNote.Ga,
     martyrias: [ModeSign.Delta],
     quantitativeNeumeRight: QuantitativeNeume.OligonPlusKentimaAbove,
-    fthora2: Fthora.DiatonicNiLow_TopRight,
+    fthora2: Fthora.DiatonicNiLow_Top,
   },
   {
+    id: 802,
     mode: 8,
     scale: Scale.Diatonic,
     scaleNote: ScaleNote.Vou,

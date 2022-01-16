@@ -1,6 +1,6 @@
 <template>
   <span
-    :contenteditable="editable"
+    :contenteditable="contentEditable"
     @blur="onBlur"
     v-html="content"
     @focus="onFocus"
@@ -15,9 +15,26 @@ export default class ContentEditable extends Vue {
   @Prop() content!: string;
   @Prop({ default: true }) selectAllOnFocus!: boolean;
   @Prop({ default: true }) editable!: boolean;
+  @Prop({ default: true }) plaintextOnly!: boolean;
+
+  get contentEditable() {
+    return this.editable
+      ? this.plaintextOnly
+        ? 'plaintext-only'
+        : 'true'
+      : 'false';
+  }
+
+  get htmlElement() {
+    return this.$el as HTMLElement;
+  }
+
+  getInnerText() {
+    return this.htmlElement.innerText;
+  }
 
   onBlur() {
-    this.$emit('blur', (this.$el as HTMLElement).innerText);
+    this.$emit('blur', this.htmlElement.innerText);
   }
 
   onFocus() {
@@ -29,7 +46,11 @@ export default class ContentEditable extends Vue {
   }
 
   focus() {
-    (this.$el as HTMLElement).focus();
+    this.htmlElement.focus();
+  }
+
+  blur() {
+    this.htmlElement.blur();
   }
 }
 </script>

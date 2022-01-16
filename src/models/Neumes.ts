@@ -36,13 +36,22 @@ export enum QuantitativeNeume {
   OligonPlusKentemata = 'OligonPlusKentemata',
   KentemataPlusOligon = 'KentemataPlusOligon',
   OligonPlusIsonPlusKentemata = 'OligonPlusIsonPlusKentemata',
-  OligonPlusApostrophos = 'OligonPlusApostrophos',
   OligonPlusApostrophosPlusKentemata = 'OligonPlusApostrophosPlusKentemata',
+  OligonPlusHyporoePlusKentemata = 'OligonPlusHyporoePlusKentemata',
   OligonPlusElaphronPlusKentemata = 'OligonPlusElaphronPlusKentemata',
   OligonPlusElaphronPlusApostrophosPlusKentemata = 'OligonPlusElaphronPlusApostrophosPlusKentemata',
   OligonPlusHamiliPlusKentemata = 'OligonPlusHamiliPlusKentemata',
+
   RunningElaphron = 'RunningElaphron',
   Hyporoe = 'Hyporoe',
+  PetastiPlusRunningElaphron = 'PetastiPlusRunningElaphron',
+  PetastiPlusHyporoe = 'PetastiPlusHyporoe',
+
+  OligonPlusIson = 'OligonPlusIson',
+  OligonPlusApostrophos = 'OligonPlusApostrophos',
+  OligonPlusElaphron = 'OligonPlusElaphron',
+  OligonPlusElaphronPlusApostrophos = 'OligonPlusElaphronPlusApostrophos',
+  OligonPlusHypsili = 'OligonPlusHypsili',
 
   Kentima = 'Kentima',
   OligonPlusKentima = 'OligonPlusKentima',
@@ -54,6 +63,8 @@ export enum QuantitativeNeume {
   OligonPlusKentemataPlusHypsiliLeft = 'OligonPlusKentemataPlusHypsiliLeft',
   OligonPlusKentemataPlusHypsiliRight = 'OligonPlusKentemataPlusHypsiliRight',
 
+  KentemataPlusOligonSpecial = 'KentemataPlusOligonSpecial',
+
   VareiaDotted = 'VareiaDotted',
   Cross = 'Cross',
 }
@@ -62,16 +73,9 @@ export enum TimeNeume {
   Klasma_Top = 'Klasma_Top',
   Klasma_Bottom = 'Klasma_Bottom',
 
-  Klasma_TopRight = 'Klasma_TopRight',
-  Klasma_TopLeft = 'Klasma_TopLeft',
-
   Hapli = 'Hapli',
   Dipli = 'Dipli',
   Tripli = 'Tripli',
-
-  Hapli_Right = 'Hapli_Right',
-  Dipli_Right = 'Dipli_Right',
-  Tripli_Right = 'Tripli_Right',
 }
 
 export enum GorgonNeume {
@@ -80,16 +84,16 @@ export enum GorgonNeume {
   Digorgon = 'Digorgon',
   Trigorgon = 'Trigorgon',
 
-  Gorgon_TopRight = 'Gorgon_TopRight',
-  Gorgon_BottomRight = 'Gorgon_BottomRight',
-  Digorgon_Right = 'Digorgon_Right',
-  Trigorgon_Right = 'Trigorgon_Right',
-
   GorgonDottedLeft = 'GorgonDottedLeft',
   GorgonDottedRight = 'GorgonDottedRight',
 
-  GorgonDottedLeft_Right = 'GorgonDottedLeft_Right',
-  GorgonDottedRight_Right = 'GorgonDottedRight_Right',
+  DigorgonDottedLeft1 = 'DigorgonDottedLeft1',
+  DigorgonDottedLeft2 = 'DigorgonDottedLeft2',
+  DigorgonDottedRight = 'DigorgonDottedRight',
+
+  TrigorgonDottedLeft1 = 'TrigorgonDottedLeft1',
+  TrigorgonDottedLeft2 = 'TrigorgonDottedLeft2',
+  TrigorgonDottedRight = 'TrigorgonDottedRight',
 
   Argon = 'Argon',
   Hemiolion = 'Hemiolion',
@@ -192,75 +196,41 @@ export enum ModeSign {
 }
 
 export enum Fthora {
-  DiatonicNiLow_TopCenter = 'DiatonicNiLow_TopCenter',
-  DiatonicPa_TopCenter = 'DiatonicPa_TopCenter',
-  DiatonicVou_TopCenter = 'DiatonicVou_TopCenter',
-  DiatonicGa_TopCenter = 'DiatonicGa_TopCenter',
-  DiatonicThi_TopCenter = 'DiatonicThi_TopCenter',
-  DiatonicKe_TopCenter = 'DiatonicKe_TopCenter',
-  DiatonicZo_TopCenter = 'DiatonicZo_TopCenter',
-  DiatonicNiHigh_TopCenter = 'DiatonicNiHigh_TopCenter',
-  HardChromaticPa_TopCenter = 'HardChromaticPa_TopCenter',
-  HardChromaticThi_TopCenter = 'HardChromaticThi_TopCenter',
-  SoftChromaticPa_TopCenter = 'SoftChromaticPa_TopCenter',
-  SoftChromaticThi_TopCenter = 'SoftChromaticThi_TopCenter',
-  Enharmonic_TopCenter = 'Enharmonic_TopCenter',
-  Zygos_TopCenter = 'Zygos_TopCenter',
-  Kliton_TopCenter = 'Kliton_TopCenter',
-  Spathi_TopCenter = 'Spathi_TopCenter',
+  DiatonicNiLow_Top = 'DiatonicNiLow_Top',
+  DiatonicPa_Top = 'DiatonicPa_Top',
+  DiatonicVou_Top = 'DiatonicVou_Top',
+  DiatonicGa_Top = 'DiatonicGa_Top',
+  DiatonicThi_Top = 'DiatonicThi_Top',
+  DiatonicKe_Top = 'DiatonicKe_Top',
+  DiatonicZo_Top = 'DiatonicZo_Top',
+  DiatonicNiHigh_Top = 'DiatonicNiHigh_Top',
+  HardChromaticPa_Top = 'HardChromaticPa_Top',
+  HardChromaticThi_Top = 'HardChromaticThi_Top',
+  SoftChromaticPa_Top = 'SoftChromaticPa_Top',
+  SoftChromaticThi_Top = 'SoftChromaticThi_Top',
+  Enharmonic_Top = 'Enharmonic_Top',
+  Zygos_Top = 'Zygos_Top',
+  Kliton_Top = 'Kliton_Top',
+  Spathi_Top = 'Spathi_Top',
 
-  DiatonicNiLow_TopRight = 'DiatonicNiLow_TopRight',
-  DiatonicPa_TopRight = 'DiatonicPa_TopRight',
-  DiatonicVou_TopRight = 'DiatonicVou_TopRight',
-  DiatonicGa_TopRight = 'DiatonicGa_TopRight',
-  DiatonicThi_TopRight = 'DiatonicThi_TopRight',
-  DiatonicKe_TopRight = 'DiatonicKe_TopRight',
-  DiatonicZo_TopRight = 'DiatonicZo_TopRight',
-  DiatonicNiHigh_TopRight = 'DiatonicNiHigh_TopRight',
-  HardChromaticPa_TopRight = 'HardChromaticPa_TopRight',
-  HardChromaticThi_TopRight = 'HardChromaticThi_TopRight',
-  SoftChromaticPa_TopRight = 'SoftChromaticPa_TopRight',
-  SoftChromaticThi_TopRight = 'SoftChromaticThi_TopRight',
-  Enharmonic_TopRight = 'Enharmonic_TopRight',
-  Zygos_TopRight = 'Zygos_TopRight',
-  Kliton_TopRight = 'Kliton_TopRight',
-  Spathi_TopRight = 'Spathi_TopRight',
+  DiatonicNiLow_Bottom = 'DiatonicNiLow_Bottom',
+  DiatonicPa_Bottom = 'DiatonicPa_Bottom',
+  DiatonicThi_Bottom = 'DiatonicThi_Bottom',
+  DiatonicKe_Bottom = 'DiatonicKe_Bottom',
+  DiatonicNiHigh_Bottom = 'DiatonicNiHigh_Bottom',
+  HardChromaticPa_Bottom = 'HardChromaticPa_Bottom',
+  HardChromaticThi_Bottom = 'HardChromaticThi_Bottom',
+  SoftChromaticPa_Bottom = 'SoftChromaticPa_Bottom',
+  SoftChromaticThi_Bottom = 'SoftChromaticThi_Bottom',
+  Enharmonic_Bottom = 'Enharmonic_Bottom',
+  Zygos_Bottom = 'Zygos_Bottom',
+  Kliton_Bottom = 'Kliton_Bottom',
 
-  DiatonicNiLow_BottomCenter = 'DiatonicNiLow_BottomCenter',
-  DiatonicPa_BottomCenter = 'DiatonicPa_BottomCenter',
-  DiatonicThi_BottomCenter = 'DiatonicThi_BottomCenter',
-  DiatonicKe_BottomCenter = 'DiatonicKe_BottomCenter',
-  DiatonicNiHigh_BottomCenter = 'DiatonicNiHigh_BottomCenter',
-  HardChromaticPa_BottomCenter = 'HardChromaticPa_BottomCenter',
-  HardChromaticThi_BottomCenter = 'HardChromaticThi_BottomCenter',
-  SoftChromaticPa_BottomCenter = 'SoftChromaticPa_BottomCenter',
-  SoftChromaticThi_BottomCenter = 'SoftChromaticThi_BottomCenter',
-  Enharmonic_BottomCenter = 'Enharmonic_BottomCenter',
-  Zygos_BottomCenter = 'Zygos_BottomCenter',
-  Kliton_BottomCenter = 'Kliton_BottomCenter',
+  GeneralSharp_Top = 'GeneralSharp_Top',
+  GeneralSharp_Bottom = 'GeneralSharp_Bottom',
 
-  DiatonicNiLow_BottomRight = 'DiatonicNiLow_BottomRight',
-  DiatonicPa_BottomRight = 'DiatonicPa_BottomRight',
-  DiatonicThi_BottomRight = 'DiatonicThi_BottomRight',
-  DiatonicKe_BottomRight = 'DiatonicKe_BottomRight',
-  DiatonicNiHigh_BottomRight = 'DiatonicNiHigh_BottomRight',
-  HardChromaticPa_BottomRight = 'HardChromaticPa_BottomRight',
-  HardChromaticThi_BottomRight = 'HardChromaticThi_BottomRight',
-  SoftChromaticPa_BottomRight = 'SoftChromaticPa_BottomRight',
-  SoftChromaticThi_BottomRight = 'SoftChromaticThi_BottomRight',
-  Enharmonic_BottomRight = 'Enharmonic_BottomRight',
-  Zygos_BottomRight = 'Zygos_BottomRight',
-  Kliton_BottomRight = 'Kliton_BottomRight',
-
-  GeneralSharp_TopCenter = 'GeneralSharp_TopCenter',
-  GeneralSharp_TopRight = 'GeneralSharp_TopRight',
-  GeneralSharp_BottomCenter = 'GeneralSharp_BottomCenter',
-  GeneralSharp_BottomRight = 'GeneralSharp_BottomRight',
-
-  GeneralFlat_TopCenter = 'GeneralFlat_TopCenter',
-  GeneralFlat_TopRight = 'GeneralFlat_TopRight',
-  GeneralFlat_BottomCenter = 'GeneralFlat_BottomCenter',
-  GeneralFlat_BottomRight = 'GeneralFlat_BottomRight',
+  GeneralFlat_Top = 'GeneralFlat_Top',
+  GeneralFlat_Bottom = 'GeneralFlat_Bottom',
 }
 
 export enum Accidental {
@@ -284,6 +254,40 @@ export enum MeasureBar {
   MeasureBarTop = 'MeasureBarTop',
 }
 
+export enum MeasureNumber {
+  Two = 'Two',
+  Three = 'Three',
+  Four = 'Four',
+  Five = 'Five',
+  Six = 'Six',
+  Seven = 'Seven',
+  Eight = 'Eight',
+}
+
+export enum NoteIndicator {
+  Ni = 'NoteIndicator.Ni',
+  Pa = 'NoteIndicator.Pa',
+  Vou = 'NoteIndicator.Vou',
+  Ga = 'NoteIndicator.Ga',
+  Thi = 'NoteIndicator.Thi',
+  Ke = 'NoteIndicator.Ke',
+  Zo = 'NoteIndicator.Zo',
+}
+
+export enum Ison {
+  Unison = 'Ison.Unison',
+  ThiLow = 'Ison.ThiLow',
+  KeLow = 'Ison.KeLow',
+  Zo = 'Ison.Zo',
+  Ni = 'Ison.Ni',
+  Pa = 'Ison.Pa',
+  Vou = 'Ison.Vou',
+  Ga = 'Ison.Ga',
+  Thi = 'Ison.Thi',
+  Ke = 'Ison.Ke',
+  ZoHigh = 'Ison.ZoHigh',
+}
+
 export type Neume =
   | QuantitativeNeume
   | TimeNeume
@@ -295,29 +299,49 @@ export type Neume =
   | Note
   | RootSign
   | ModeSign
-  | MeasureBar;
+  | MeasureBar
+  | MeasureNumber
+  | NoteIndicator
+  | Ison;
 
-const redNeumes: Neume[] = [
-  GorgonNeume.Gorgon_Top,
-  GorgonNeume.Gorgon_Bottom,
-  GorgonNeume.Gorgon_TopRight,
-  GorgonNeume.Gorgon_BottomRight,
-  GorgonNeume.GorgonDottedLeft,
-  GorgonNeume.GorgonDottedRight,
-  GorgonNeume.GorgonDottedLeft_Right,
-  GorgonNeume.GorgonDottedRight_Right,
-  GorgonNeume.Digorgon,
-  GorgonNeume.Digorgon_Right,
-  GorgonNeume.Trigorgon,
-  GorgonNeume.Trigorgon_Right,
-  GorgonNeume.Argon,
-  GorgonNeume.Hemiolion,
-  GorgonNeume.Diargon,
-  VocalExpressionNeume.Heteron,
-  MeasureBar.MeasureBarRight,
-  MeasureBar.MeasureBarTop,
+export const petastiNeumes: ReadonlyArray<QuantitativeNeume> = [
+  QuantitativeNeume.PetastiWithIson,
+  QuantitativeNeume.Petasti,
+  QuantitativeNeume.PetastiPlusOligon,
+  QuantitativeNeume.PetastiPlusKentimaAbove,
+  QuantitativeNeume.PetastiPlusHypsiliRight,
+  QuantitativeNeume.PetastiPlusHypsiliLeft,
+  QuantitativeNeume.PetastiPlusHypsiliPlusKentimaHorizontal,
+  QuantitativeNeume.PetastiPlusHypsiliPlusKentimaVertical,
+  QuantitativeNeume.PetastiPlusDoubleHypsili,
+  QuantitativeNeume.PetastiPlusApostrophos,
+  QuantitativeNeume.PetastiPlusElaphron,
+  QuantitativeNeume.PetastiPlusElaphronPlusApostrophos,
+  QuantitativeNeume.PetastiPlusHyporoe,
 ];
 
-export function isRedNeume(neume: Neume) {
-  return redNeumes.includes(neume);
-}
+export const oligonNeumes: ReadonlyArray<QuantitativeNeume> = [
+  QuantitativeNeume.Oligon,
+  QuantitativeNeume.OligonPlusApostrophos,
+  QuantitativeNeume.OligonPlusApostrophosPlusKentemata,
+  QuantitativeNeume.OligonPlusDoubleHypsili,
+  QuantitativeNeume.OligonPlusHyporoePlusKentemata,
+  QuantitativeNeume.OligonPlusElaphronPlusApostrophosPlusKentemata,
+  QuantitativeNeume.OligonPlusElaphronPlusKentemata,
+  QuantitativeNeume.OligonPlusHamiliPlusKentemata,
+  QuantitativeNeume.OligonPlusHypsiliLeft,
+  QuantitativeNeume.OligonPlusHypsiliPlusKentimaHorizontal,
+  QuantitativeNeume.OligonPlusHypsiliPlusKentimaVertical,
+  QuantitativeNeume.OligonPlusHypsiliRight,
+  QuantitativeNeume.OligonPlusIsonPlusKentemata,
+  QuantitativeNeume.OligonPlusKentemata,
+  QuantitativeNeume.OligonPlusKentemataPlusHypsiliLeft,
+  QuantitativeNeume.OligonPlusKentemataPlusHypsiliRight,
+  QuantitativeNeume.OligonPlusKentima,
+  QuantitativeNeume.OligonPlusKentimaAbove,
+  QuantitativeNeume.OligonPlusKentimaBelow,
+  QuantitativeNeume.OligonPlusRunningElaphronPlusKentemata,
+  QuantitativeNeume.KentemataPlusOligon,
+  QuantitativeNeume.KentemataPlusOligonSpecial,
+  QuantitativeNeume.PetastiPlusOligon,
+];

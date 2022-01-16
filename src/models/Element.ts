@@ -8,10 +8,13 @@ import {
   Accidental,
   GorgonNeume,
   TempoSign,
-  Neume,
   ModeSign,
   MeasureBar,
+  MeasureNumber,
+  NoteIndicator,
+  Ison,
 } from '@/models/Neumes';
+import { TextMeasurementService } from '@/services/TextMeasurementService';
 import { Unit } from '@/utils/Unit';
 import { ModeKeyTemplate } from './ModeKeys';
 import {
@@ -19,6 +22,7 @@ import {
   getTimeReplacements,
   getVocalExpressionReplacements,
   getFthoraReplacements,
+  getQuantitativeReplacements,
 } from './NeumeReplacements';
 import { Scale, ScaleNote } from './Scales';
 
@@ -28,7 +32,6 @@ export enum ElementType {
   Tempo = 'Tempo',
   Empty = 'Empty',
   TextBox = 'TextBox',
-  StaffText = 'StaffText',
   DropCap = 'DropCap',
   ModeKey = 'ModeKey',
 }
@@ -41,58 +44,111 @@ export abstract class ScoreElement {
   public x: number = 0;
   public y: number = 0;
   public width: number = 0;
+
+  // This is used to help force components to re-render
+  public keyHelper: number = 0;
 }
 
 export class NoteElement extends ScoreElement {
   public readonly elementType: ElementType = ElementType.Note;
-  public quantitativeNeume: QuantitativeNeume = QuantitativeNeume.Ison;
-  public timeNeume: TimeNeume | null = null;
-  public gorgonNeume: GorgonNeume | null = null;
-  public vocalExpressionNeume: VocalExpressionNeume | null = null;
-  public fthora: Fthora | null = null;
-  public accidental: Accidental | null = null;
   public measureBar: MeasureBar | null = null;
+  public measureNumber: MeasureNumber | null = null;
+  public noteIndicator: NoteIndicator | null = null;
+  public ison: Ison | null = null;
   public lyrics: string = '';
   public isMelisma: boolean = false;
   public isMelismaStart: boolean = false;
+  public isHyphen: boolean = false;
+
+  public get quantitativeNeume() {
+    return this._quantitativeNeume;
+  }
+
+  public get timeNeume() {
+    return this._timeNeume;
+  }
+
+  public get gorgonNeume() {
+    return this._gorgonNeume;
+  }
+
+  public get hyporoeGorgonNeume() {
+    return this._hyporoeGorgonNeume;
+  }
+
+  public get vocalExpressionNeume() {
+    return this._vocalExpressionNeume;
+  }
+
+  public get accidental() {
+    return this._accidental;
+  }
+
+  public get fthora() {
+    return this._fthora;
+  }
+
+  public set quantitativeNeume(neume: QuantitativeNeume) {
+    this._quantitativeNeume = neume;
+    this.replaceNeumes();
+
+    if (
+      this.quantitativeNeume !==
+      QuantitativeNeume.OligonPlusHyporoePlusKentemata
+    ) {
+      this._hyporoeGorgonNeume = null;
+    }
+  }
+
+  public set timeNeume(neume: TimeNeume | null) {
+    this._timeNeume = neume;
+    this.replaceNeumes();
+  }
+
+  public set gorgonNeume(neume: GorgonNeume | null) {
+    this._gorgonNeume = neume;
+    this.replaceNeumes();
+  }
+
+  public set hyporoeGorgonNeume(neume: GorgonNeume | null) {
+    this._hyporoeGorgonNeume = neume;
+    this.replaceNeumes();
+  }
+
+  public set vocalExpressionNeume(neume: VocalExpressionNeume | null) {
+    this._vocalExpressionNeume = neume;
+    this.replaceNeumes();
+  }
+
+  public set accidental(neume: Accidental | null) {
+    this._accidental = neume;
+    this.replaceNeumes();
+  }
+
+  public set fthora(neume: Fthora | null) {
+    this._fthora = neume;
+    this.replaceNeumes();
+  }
 
   // Used for display
   public melismaText: string = '';
-  public melismaOffsetLeft: number | null = null;
+  public isFullMelisma: boolean = false;
+  public melismaWidth: number = 0;
+  public lyricsVerticalOffset: number = 0;
+  public lyricsHorizontalOffset: number | null = null;
   public neumeWidth: number = 0;
   public lyricsWidth: number = 0;
 
-  public setQuantitativeNeume(neume: QuantitativeNeume) {
-    this.quantitativeNeume = neume;
-    this.replaceNeumes();
-  }
-
-  public setTimeNeume(neume: TimeNeume | null) {
-    this.timeNeume = neume;
-    this.replaceNeumes();
-  }
-
-  public setGorgonNeume(neume: GorgonNeume | null) {
-    this.gorgonNeume = neume;
-    this.replaceNeumes();
-  }
-
-  public setVocalExpressionNeume(neume: VocalExpressionNeume | null) {
-    this.vocalExpressionNeume = neume;
-    this.replaceNeumes();
-  }
-
-  public setAccidental(neume: Accidental | null) {
-    this.accidental = neume;
-    this.replaceNeumes();
-  }
-
-  public setFthora(neume: Fthora | null) {
-    this.fthora = neume;
-    this.replaceNeumes();
-  }
+  private _quantitativeNeume: QuantitativeNeume = QuantitativeNeume.Ison;
+  private _timeNeume: TimeNeume | null = null;
+  private _gorgonNeume: GorgonNeume | null = null;
+  private _hyporoeGorgonNeume: GorgonNeume | null = null;
+  private _vocalExpressionNeume: VocalExpressionNeume | null = null;
+  private _fthora: Fthora | null = null;
+  private _accidental: Accidental | null = null;
 
   private replaceNeumes() {
+    this.replaceQuantitativeNeumes();
     this.replaceGorgons();
     this.replaceTimeNeumes();
     this.replaceVocalExpressions();
@@ -116,7 +172,7 @@ export class NoteElement extends ScoreElement {
           );
 
         if (replacement) {
-          this.setGorgonNeume(replacement.replaceWith);
+          this.gorgonNeume = replacement.replaceWith;
         }
       }
     }
@@ -139,7 +195,7 @@ export class NoteElement extends ScoreElement {
           );
 
         if (replacement) {
-          this.setTimeNeume(replacement.replaceWith);
+          this.timeNeume = replacement.replaceWith;
         }
       }
     }
@@ -162,7 +218,7 @@ export class NoteElement extends ScoreElement {
           );
 
         if (replacement) {
-          this.setFthora(replacement.replaceWith);
+          this.fthora = replacement.replaceWith;
         }
       }
     }
@@ -187,7 +243,35 @@ export class NoteElement extends ScoreElement {
           );
 
         if (replacement) {
-          this.setVocalExpressionNeume(replacement.replaceWith);
+          this.vocalExpressionNeume = replacement.replaceWith;
+        }
+      }
+    }
+  }
+
+  private replaceQuantitativeNeumes() {
+    const replacements = getQuantitativeReplacements(this.quantitativeNeume);
+
+    if (replacements) {
+      if (this.vocalExpressionNeume) {
+        const replacement =
+          replacements.find(
+            (x) =>
+              x.isPairedWithVocalExpression &&
+              x.isPairedWithVocalExpression.includes(
+                this.vocalExpressionNeume!,
+              ),
+          ) ||
+          replacements.find(
+            (x) =>
+              x.isNotPairedWithVocalExpression &&
+              !x.isNotPairedWithVocalExpression.includes(
+                this.vocalExpressionNeume!,
+              ),
+          );
+
+        if (replacement) {
+          this.quantitativeNeume = replacement.replaceWith!;
         }
       }
     }
@@ -202,6 +286,7 @@ export class MartyriaElement extends ScoreElement {
   public apostrophe: boolean = false;
   public fthora: Fthora | null = null;
   public measureBar: MeasureBar | null = null;
+  public alignRight: boolean = false;
 
   public error: boolean = false;
 }
@@ -213,6 +298,8 @@ export class TempoElement extends ScoreElement {
 
 export class EmptyElement extends ScoreElement {
   public readonly elementType: ElementType = ElementType.Empty;
+
+  public height: number = 0;
 }
 
 export enum TextBoxAlignment {
@@ -224,7 +311,7 @@ export enum TextBoxAlignment {
 export class TextBoxElement extends ScoreElement {
   public readonly elementType: ElementType = ElementType.TextBox;
   public alignment: TextBoxAlignment = TextBoxAlignment.Left;
-  public color: string = 'black';
+  public color: string = '#000000';
   public content: string = '';
   public fontSize: number = 16;
   public fontFamily: string = 'Omega';
@@ -233,6 +320,7 @@ export class TextBoxElement extends ScoreElement {
 
 export class ModeKeyElement extends ScoreElement {
   public readonly elementType: ElementType = ElementType.ModeKey;
+  public templateId: number | null = null;
   public alignment: TextBoxAlignment = TextBoxAlignment.Center;
   public mode: number = 1;
   public scale: Scale = Scale.Diatonic;
@@ -244,9 +332,8 @@ export class ModeKeyElement extends ScoreElement {
   public fthora2: Fthora | null = null;
   public quantitativeNeumeRight: QuantitativeNeume | null = null;
   public quantitativeNeumeTop: ModeSign | null = null;
-  public color: string = 'black';
-  public fontSize: number = Unit.FromPt(20);
-  public height: number = 20;
+  public color: string = '#000000';
+  public fontSize: number = Unit.fromPt(20);
 
   public get isPlagal() {
     return this.mode > 4 && this.mode !== 7;
@@ -256,22 +343,20 @@ export class ModeKeyElement extends ScoreElement {
     return this.mode === 7;
   }
 
-  public updateFrom(element: ModeKeyElement) {
-    this.mode = element.mode;
-    this.scale = element.scale;
-    this.scaleNote = element.scaleNote;
-    this.martyrias = element.martyrias.map((x) => x);
-    this.fthora = element.fthora;
-    this.fthora2 = element.fthora2;
-    this.note = element.note;
-    this.note2 = element.note2;
-    this.quantitativeNeumeTop = element.quantitativeNeumeTop;
-    this.quantitativeNeumeRight = element.quantitativeNeumeRight;
+  public get height() {
+    return Math.max(
+      TextMeasurementService.getFontHeight(`${this.fontSize}px Oxeia`),
+      TextMeasurementService.getFontHeight(`${this.fontSize}px EzSpecial2`),
+    );
   }
 
-  public static createFromTemplate(template: ModeKeyTemplate) {
+  public static createFromTemplate(
+    template: ModeKeyTemplate,
+    alignment?: TextBoxAlignment,
+  ) {
     const element = new ModeKeyElement();
 
+    element.templateId = template.id;
     element.mode = template.mode;
     element.scale = template.scale;
     element.scaleNote = template.scaleNote;
@@ -282,16 +367,10 @@ export class ModeKeyElement extends ScoreElement {
     element.note2 = template.note2 || null;
     element.quantitativeNeumeTop = template.quantitativeNeumeTop || null;
     element.quantitativeNeumeRight = template.quantitativeNeumeRight || null;
-    element.alignment = TextBoxAlignment.Left;
+    element.alignment = alignment || TextBoxAlignment.Center;
 
     return element;
   }
-}
-
-export class StaffTextElement extends ScoreElement {
-  public readonly elementType: ElementType = ElementType.StaffText;
-  public offset: ScoreElementOffset = new ScoreElementOffset();
-  public text: string = 'text';
 }
 
 export class DropCapElement extends ScoreElement {

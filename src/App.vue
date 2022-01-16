@@ -9,10 +9,25 @@
 </template>
 
 <style>
+:root {
+  --zoom: 1;
+
+  --btn-color-selected: lightsteelblue;
+}
+
+@media print {
+  :root {
+    --zoom: 1 !important;
+  }
+}
+
+@page {
+  margin: 0;
+}
+
 @font-face {
   font-family: Psaltica;
   src: url('~@/assets/EZ Psaltica.ttf');
-  /* src: url('~@/assets/KANewStathisMain-Regular.ttf'); */
 }
 
 @font-face {
@@ -23,6 +38,11 @@
 @font-face {
   font-family: Athonite;
   src: url('~@/assets/Athonite.ttf');
+}
+
+@font-face {
+  font-family: PFGoudyInitials;
+  src: url('~@/assets/PFGoudyInitials.ttf');
 }
 
 @font-face {
@@ -58,6 +78,31 @@ body {
   overflow: hidden;
 
   font-size: 16px;
+}
+
+.ok-btn {
+  padding: 0.5rem;
+  border: none;
+  background-color: rgb(66, 139, 202);
+  color: white;
+  border-radius: 4px;
+}
+
+.ok-btn:hover {
+  background-color: rgb(81, 157, 223);
+}
+
+.neutral-btn,
+.cancel-btn {
+  padding: 0.5rem;
+  border: 1px solid black;
+  background-color: white;
+  border-radius: 4px;
+}
+
+.neutral-btn:hover,
+.cancel-btn:hover {
+  background-color: #f8fbff;
 }
 </style>
 

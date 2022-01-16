@@ -1,9 +1,25 @@
 export class Unit {
-  public static FromInch(inches: number) {
+  public static fromInch(inches: number) {
     return inches * 96;
   }
 
-  public static FromPt(points: number) {
+  public static toInch(pixels: number) {
+    return pixels / 96;
+  }
+
+  public static fromMm(mm: number) {
+    return (mm / 25.4) * 96;
+  }
+
+  public static toMm(pixels: number) {
+    return (pixels / 96) * 25.4;
+  }
+
+  public static fromPt(points: number) {
     return (points * 96) / 72;
+  }
+
+  public static toPt(points: number) {
+    return (points * 72) / 96;
   }
 }

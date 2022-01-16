@@ -11,6 +11,9 @@ import {
   GorgonNeume,
   ModeSign,
   MeasureBar,
+  MeasureNumber,
+  NoteIndicator,
+  Ison,
 } from '@/models/Neumes';
 
 export type NeumeFont =
@@ -131,12 +134,12 @@ export const neumeMap = new Map<Neume, NeumeMapping>([
     { fontFamily: 'Psaltica', text: 'P' },
   ],
   [
-    QuantitativeNeume.OligonPlusApostrophos,
-    { fontFamily: 'Psaltica', text: 'I' },
-  ],
-  [
     QuantitativeNeume.OligonPlusApostrophosPlusKentemata,
     { fontFamily: 'Psaltica', text: 'U' },
+  ],
+  [
+    QuantitativeNeume.OligonPlusHyporoePlusKentemata,
+    { fontFamily: 'EzSpecial1', text: 't' },
   ],
   [
     QuantitativeNeume.OligonPlusElaphronPlusKentemata,
@@ -150,8 +153,35 @@ export const neumeMap = new Map<Neume, NeumeMapping>([
     QuantitativeNeume.OligonPlusHamiliPlusKentemata,
     { fontFamily: 'Psaltica', text: 'R' },
   ],
+
   [QuantitativeNeume.RunningElaphron, { fontFamily: 'Psaltica', text: '_' }],
   [QuantitativeNeume.Hyporoe, { fontFamily: 'Psaltica', text: ')' }],
+  [
+    QuantitativeNeume.PetastiPlusRunningElaphron,
+    { fontFamily: 'EzSpecial2', text: '_' },
+  ],
+  [
+    QuantitativeNeume.PetastiPlusHyporoe,
+    { fontFamily: 'EzSpecial2', text: '-' },
+  ],
+
+  [QuantitativeNeume.OligonPlusIson, { fontFamily: 'EzSpecial2', text: '9' }],
+  [
+    QuantitativeNeume.OligonPlusApostrophos,
+    { fontFamily: 'Psaltica', text: 'I' },
+  ],
+  [
+    QuantitativeNeume.OligonPlusElaphron,
+    { fontFamily: 'EzSpecial2', text: '0' },
+  ],
+  [
+    QuantitativeNeume.OligonPlusElaphronPlusApostrophos,
+    { fontFamily: 'EzSpecial2', text: ')' },
+  ],
+  [
+    QuantitativeNeume.OligonPlusHypsili,
+    { fontFamily: 'EzSpecial2', text: ']' },
+  ],
 
   [QuantitativeNeume.Kentima, { fontFamily: 'Psaltica', text: '~' }],
   [QuantitativeNeume.OligonPlusKentima, { fontFamily: 'Psaltica', text: '1~' }],
@@ -178,29 +208,30 @@ export const neumeMap = new Map<Neume, NeumeMapping>([
     { fontFamily: 'EzSpecial1', text: 'u' },
   ],
 
+  [
+    QuantitativeNeume.KentemataPlusOligonSpecial,
+    { fontFamily: 'Psaltica', text: '\u00CE' },
+  ],
+
   [QuantitativeNeume.Cross, { fontFamily: 'Psaltica', text: '+' }],
   [QuantitativeNeume.VareiaDotted, { fontFamily: 'Psaltica', text: '|' }],
 
   [GorgonNeume.Gorgon_Top, { fontFamily: 'Psaltica', text: 's' }],
   [GorgonNeume.Gorgon_Bottom, { fontFamily: 'Psaltica', text: 'x' }],
 
-  [GorgonNeume.Gorgon_TopRight, { fontFamily: 'Psaltica', text: 'S' }],
-  [GorgonNeume.Gorgon_BottomRight, { fontFamily: 'Psaltica', text: 'X' }],
-
   [GorgonNeume.Digorgon, { fontFamily: 'Psaltica', text: 'd' }],
   [GorgonNeume.Trigorgon, { fontFamily: 'Psaltica', text: 'f' }],
-
-  [GorgonNeume.Digorgon_Right, { fontFamily: 'Psaltica', text: 'D' }],
-  [GorgonNeume.Trigorgon_Right, { fontFamily: 'Psaltica', text: 'F' }],
 
   [GorgonNeume.GorgonDottedLeft, { fontFamily: 'Psaltica', text: 'h' }],
   [GorgonNeume.GorgonDottedRight, { fontFamily: 'EzSpecial1', text: 'h' }],
 
-  [GorgonNeume.GorgonDottedLeft_Right, { fontFamily: 'Psaltica', text: 'H' }],
-  [
-    GorgonNeume.GorgonDottedRight_Right,
-    { fontFamily: 'EzSpecial1', text: 'H' },
-  ],
+  [GorgonNeume.DigorgonDottedLeft1, { fontFamily: 'EzSpecial1', text: 'd' }],
+  [GorgonNeume.DigorgonDottedLeft2, { fontFamily: 'EzSpecial1', text: 'k' }],
+  [GorgonNeume.DigorgonDottedRight, { fontFamily: 'EzSpecial1', text: 'c' }],
+
+  [GorgonNeume.TrigorgonDottedLeft1, { fontFamily: 'EzSpecial1', text: 'f' }],
+  [GorgonNeume.TrigorgonDottedLeft2, { fontFamily: 'EzSpecial1', text: 'b' }],
+  [GorgonNeume.TrigorgonDottedRight, { fontFamily: 'EzSpecial1', text: 'v' }],
 
   [GorgonNeume.Argon, { fontFamily: 'Psaltica', text: 'g' }],
   [GorgonNeume.Hemiolion, { fontFamily: 'Psaltica', text: 'G' }],
@@ -209,86 +240,45 @@ export const neumeMap = new Map<Neume, NeumeMapping>([
   [TimeNeume.Klasma_Top, { fontFamily: 'Psaltica', text: 'a' }],
   [TimeNeume.Klasma_Bottom, { fontFamily: 'Psaltica', text: 'z' }],
 
-  [TimeNeume.Klasma_TopRight, { fontFamily: 'Psaltica', text: 'A' }],
-  [TimeNeume.Klasma_TopLeft, { fontFamily: 'Psaltica', text: 'Z' }],
-
   [TimeNeume.Hapli, { fontFamily: 'Psaltica', text: ';' }],
   [TimeNeume.Dipli, { fontFamily: 'Psaltica', text: 'k' }],
   [TimeNeume.Tripli, { fontFamily: 'EzSpecial1', text: ';' }],
 
-  [TimeNeume.Hapli_Right, { fontFamily: 'Psaltica', text: ':' }],
-  [TimeNeume.Dipli_Right, { fontFamily: 'Psaltica', text: 'K' }],
-  [TimeNeume.Tripli_Right, { fontFamily: 'EzSpecial1', text: ':' }],
+  [Fthora.DiatonicNiLow_Top, { fontFamily: 'EzFthora', text: 'd' }],
+  [Fthora.DiatonicPa_Top, { fontFamily: 'EzFthora', text: 'f' }],
+  [Fthora.DiatonicVou_Top, { fontFamily: 'EzFthora', text: 'g' }],
+  [Fthora.DiatonicGa_Top, { fontFamily: 'EzFthora', text: 'h' }],
+  [Fthora.DiatonicThi_Top, { fontFamily: 'EzFthora', text: 'j' }],
+  [Fthora.DiatonicKe_Top, { fontFamily: 'EzFthora', text: 'k' }],
+  [Fthora.DiatonicZo_Top, { fontFamily: 'EzFthora', text: 'l' }],
+  [Fthora.DiatonicNiHigh_Top, { fontFamily: 'EzFthora', text: '7' }],
+  [Fthora.HardChromaticPa_Top, { fontFamily: 'EzFthora', text: '1' }],
+  [Fthora.HardChromaticThi_Top, { fontFamily: 'EzFthora', text: '6' }],
+  [Fthora.SoftChromaticPa_Top, { fontFamily: 'EzFthora', text: '4' }],
+  [Fthora.SoftChromaticThi_Top, { fontFamily: 'EzFthora', text: '2' }],
+  [Fthora.Enharmonic_Top, { fontFamily: 'EzFthora', text: '0' }],
+  [Fthora.Zygos_Top, { fontFamily: 'EzFthora', text: '8' }],
+  [Fthora.Kliton_Top, { fontFamily: 'EzFthora', text: '9' }],
+  [Fthora.Spathi_Top, { fontFamily: 'EzFthora', text: '`' }],
 
-  [Fthora.DiatonicNiLow_TopCenter, { fontFamily: 'EzFthora', text: 'd' }],
-  [Fthora.DiatonicPa_TopCenter, { fontFamily: 'EzFthora', text: 'f' }],
-  [Fthora.DiatonicVou_TopCenter, { fontFamily: 'EzFthora', text: 'g' }],
-  [Fthora.DiatonicGa_TopCenter, { fontFamily: 'EzFthora', text: 'h' }],
-  [Fthora.DiatonicThi_TopCenter, { fontFamily: 'EzFthora', text: 'j' }],
-  [Fthora.DiatonicKe_TopCenter, { fontFamily: 'EzFthora', text: 'k' }],
-  [Fthora.DiatonicZo_TopCenter, { fontFamily: 'EzFthora', text: 'l' }],
-  [Fthora.DiatonicNiHigh_TopCenter, { fontFamily: 'EzFthora', text: '7' }],
-  [Fthora.HardChromaticPa_TopCenter, { fontFamily: 'EzFthora', text: '1' }],
-  [Fthora.HardChromaticThi_TopCenter, { fontFamily: 'EzFthora', text: '6' }],
-  [Fthora.SoftChromaticPa_TopCenter, { fontFamily: 'EzFthora', text: '4' }],
-  [Fthora.SoftChromaticThi_TopCenter, { fontFamily: 'EzFthora', text: '2' }],
-  [Fthora.Enharmonic_TopCenter, { fontFamily: 'EzFthora', text: '0' }],
-  [Fthora.Zygos_TopCenter, { fontFamily: 'EzFthora', text: '8' }],
-  [Fthora.Kliton_TopCenter, { fontFamily: 'EzFthora', text: '9' }],
-  [Fthora.Spathi_TopCenter, { fontFamily: 'EzFthora', text: '`' }],
+  [Fthora.DiatonicNiLow_Bottom, { fontFamily: 'EzFthora', text: 'z' }],
+  [Fthora.DiatonicPa_Bottom, { fontFamily: 'EzFthora', text: 'a' }],
+  [Fthora.DiatonicThi_Bottom, { fontFamily: 'EzFthora', text: 's' }],
+  [Fthora.DiatonicKe_Bottom, { fontFamily: 'EzFthora', text: 'x' }],
+  [Fthora.DiatonicNiHigh_Bottom, { fontFamily: 'EzFthora', text: 'u' }],
+  [Fthora.HardChromaticPa_Bottom, { fontFamily: 'EzFthora', text: 'q' }],
+  [Fthora.HardChromaticThi_Bottom, { fontFamily: 'EzFthora', text: 'y' }],
+  [Fthora.SoftChromaticPa_Bottom, { fontFamily: 'EzFthora', text: 'r' }],
+  [Fthora.SoftChromaticThi_Bottom, { fontFamily: 'EzFthora', text: 'w' }],
+  [Fthora.Enharmonic_Bottom, { fontFamily: 'EzFthora', text: 'p' }],
+  [Fthora.Zygos_Bottom, { fontFamily: 'EzFthora', text: 'i' }],
+  [Fthora.Kliton_Bottom, { fontFamily: 'EzFthora', text: 'o' }],
 
-  [Fthora.DiatonicNiLow_TopRight, { fontFamily: 'EzFthora', text: 'D' }],
-  [Fthora.DiatonicPa_TopRight, { fontFamily: 'EzFthora', text: 'F' }],
-  [Fthora.DiatonicVou_TopRight, { fontFamily: 'EzFthora', text: 'G' }],
-  [Fthora.DiatonicGa_TopRight, { fontFamily: 'EzFthora', text: 'H' }],
-  [Fthora.DiatonicThi_TopRight, { fontFamily: 'EzFthora', text: 'J' }],
-  [Fthora.DiatonicKe_TopRight, { fontFamily: 'EzFthora', text: 'K' }],
-  [Fthora.DiatonicZo_TopRight, { fontFamily: 'EzFthora', text: 'L' }],
-  [Fthora.DiatonicNiHigh_TopRight, { fontFamily: 'EzFthora', text: '&' }],
-  [Fthora.HardChromaticPa_TopRight, { fontFamily: 'EzFthora', text: '!' }],
-  [Fthora.HardChromaticThi_TopRight, { fontFamily: 'EzFthora', text: '^' }],
-  [Fthora.SoftChromaticPa_TopRight, { fontFamily: 'EzFthora', text: '$' }],
-  [Fthora.SoftChromaticThi_TopRight, { fontFamily: 'EzFthora', text: '@' }],
-  [Fthora.Enharmonic_TopRight, { fontFamily: 'EzFthora', text: ')' }],
-  [Fthora.Zygos_TopRight, { fontFamily: 'EzFthora', text: '*' }],
-  [Fthora.Kliton_TopRight, { fontFamily: 'EzFthora', text: '(' }],
-  [Fthora.Spathi_TopRight, { fontFamily: 'EzFthora', text: '~' }],
+  [Fthora.GeneralSharp_Top, { fontFamily: 'EzFthora', text: '3' }],
+  [Fthora.GeneralSharp_Bottom, { fontFamily: 'EzFthora', text: 'e' }],
 
-  [Fthora.DiatonicNiLow_BottomCenter, { fontFamily: 'EzFthora', text: 'z' }],
-  [Fthora.DiatonicPa_BottomCenter, { fontFamily: 'EzFthora', text: 'a' }],
-  [Fthora.DiatonicThi_BottomCenter, { fontFamily: 'EzFthora', text: 's' }],
-  [Fthora.DiatonicKe_BottomCenter, { fontFamily: 'EzFthora', text: 'x' }],
-  [Fthora.DiatonicNiHigh_BottomCenter, { fontFamily: 'EzFthora', text: 'u' }],
-  [Fthora.HardChromaticPa_BottomCenter, { fontFamily: 'EzFthora', text: 'q' }],
-  [Fthora.HardChromaticThi_BottomCenter, { fontFamily: 'EzFthora', text: 'y' }],
-  [Fthora.SoftChromaticPa_BottomCenter, { fontFamily: 'EzFthora', text: 'r' }],
-  [Fthora.SoftChromaticThi_BottomCenter, { fontFamily: 'EzFthora', text: 'w' }],
-  [Fthora.Enharmonic_BottomCenter, { fontFamily: 'EzFthora', text: 'p' }],
-  [Fthora.Zygos_BottomCenter, { fontFamily: 'EzFthora', text: 'i' }],
-  [Fthora.Kliton_BottomCenter, { fontFamily: 'EzFthora', text: 'o' }],
-
-  [Fthora.DiatonicNiLow_BottomRight, { fontFamily: 'EzFthora', text: 'Z' }],
-  [Fthora.DiatonicPa_BottomRight, { fontFamily: 'EzFthora', text: 'A' }],
-  [Fthora.DiatonicThi_BottomRight, { fontFamily: 'EzFthora', text: 'S' }],
-  [Fthora.DiatonicKe_BottomRight, { fontFamily: 'EzFthora', text: 'X' }],
-  [Fthora.DiatonicNiHigh_BottomRight, { fontFamily: 'EzFthora', text: 'U' }],
-  [Fthora.HardChromaticPa_BottomRight, { fontFamily: 'EzFthora', text: 'Q' }],
-  [Fthora.HardChromaticThi_BottomRight, { fontFamily: 'EzFthora', text: 'Y' }],
-  [Fthora.SoftChromaticPa_BottomRight, { fontFamily: 'EzFthora', text: 'R' }],
-  [Fthora.SoftChromaticThi_BottomRight, { fontFamily: 'EzFthora', text: 'W' }],
-  [Fthora.Enharmonic_BottomRight, { fontFamily: 'EzFthora', text: 'P' }],
-  [Fthora.Zygos_BottomRight, { fontFamily: 'EzFthora', text: 'I' }],
-  [Fthora.Kliton_BottomRight, { fontFamily: 'EzFthora', text: 'O' }],
-
-  [Fthora.GeneralSharp_TopCenter, { fontFamily: 'EzFthora', text: '3' }],
-  [Fthora.GeneralSharp_TopRight, { fontFamily: 'EzFthora', text: '#' }],
-  [Fthora.GeneralSharp_BottomCenter, { fontFamily: 'EzFthora', text: 'e' }],
-  [Fthora.GeneralSharp_BottomRight, { fontFamily: 'EzFthora', text: 'E' }],
-
-  [Fthora.GeneralFlat_TopCenter, { fontFamily: 'EzFthora', text: '5' }],
-  [Fthora.GeneralFlat_TopRight, { fontFamily: 'EzFthora', text: '%' }],
-  [Fthora.GeneralFlat_BottomCenter, { fontFamily: 'EzFthora', text: 't' }],
-  [Fthora.GeneralFlat_BottomRight, { fontFamily: 'EzFthora', text: 'T' }],
+  [Fthora.GeneralFlat_Top, { fontFamily: 'EzFthora', text: '5' }],
+  [Fthora.GeneralFlat_Bottom, { fontFamily: 'EzFthora', text: 't' }],
 
   [Accidental.Sharp_2_Right, { fontFamily: 'EzFthora', text: '+' }],
   [Accidental.Sharp_2_Left, { fontFamily: 'EzFthora', text: '=' }],
@@ -395,6 +385,34 @@ export const neumeMap = new Map<Neume, NeumeMapping>([
 
   [MeasureBar.MeasureBarRight, { fontFamily: 'Psaltica', text: 'J' }],
   [MeasureBar.MeasureBarTop, { fontFamily: 'Psaltica', text: 'j' }],
+
+  [MeasureNumber.Two, { fontFamily: 'EzSpecial2', text: '2' }],
+  [MeasureNumber.Three, { fontFamily: 'EzSpecial2', text: '3' }],
+  [MeasureNumber.Four, { fontFamily: 'EzSpecial2', text: '4' }],
+  [MeasureNumber.Five, { fontFamily: 'EzSpecial2', text: '5' }],
+  [MeasureNumber.Six, { fontFamily: 'EzSpecial2', text: '6' }],
+  [MeasureNumber.Seven, { fontFamily: 'EzSpecial2', text: '7' }],
+  [MeasureNumber.Eight, { fontFamily: 'EzSpecial2', text: '8' }],
+
+  [NoteIndicator.Ni, { fontFamily: 'EzFthora', text: 'c' }],
+  [NoteIndicator.Pa, { fontFamily: 'EzFthora', text: 'v' }],
+  [NoteIndicator.Vou, { fontFamily: 'EzFthora', text: 'b' }],
+  [NoteIndicator.Ga, { fontFamily: 'EzFthora', text: 'n' }],
+  [NoteIndicator.Thi, { fontFamily: 'EzFthora', text: 'm' }],
+  [NoteIndicator.Ke, { fontFamily: 'EzFthora', text: ',' }],
+  [NoteIndicator.Zo, { fontFamily: 'EzFthora', text: '.' }],
+
+  [Ison.Unison, { fontFamily: 'EzSpecial2', text: '?' }],
+  [Ison.ThiLow, { fontFamily: 'EzSpecial2', text: '~' }],
+  [Ison.KeLow, { fontFamily: 'EzSpecial2', text: '!' }],
+  [Ison.Zo, { fontFamily: 'EzSpecial2', text: '>' }],
+  [Ison.Ni, { fontFamily: 'EzSpecial2', text: 'C' }],
+  [Ison.Pa, { fontFamily: 'EzSpecial2', text: 'V' }],
+  [Ison.Vou, { fontFamily: 'EzSpecial2', text: 'B' }],
+  [Ison.Ga, { fontFamily: 'EzSpecial2', text: 'N' }],
+  [Ison.Thi, { fontFamily: 'EzSpecial2', text: 'M' }],
+  [Ison.Ke, { fontFamily: 'EzSpecial2', text: '<' }],
+  [Ison.ZoHigh, { fontFamily: 'EzSpecial2', text: 'Z' }], // The font appears to have a bug in it. This mapping does not work
 ]);
 
 const quantitativeNeumeKeyboardMap = new Map<string, QuantitativeNeume>([

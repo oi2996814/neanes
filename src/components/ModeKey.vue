@@ -41,6 +41,8 @@ import {
   getQuantitativeNeumeAdjustments,
   NeumeAdjustmentOffset,
 } from '@/models/NeumeAdjustments';
+import { withZoom } from '@/utils/withZoom';
+import { PageSetup } from '@/models/PageSetup';
 
 @Component({
   components: {
@@ -49,6 +51,7 @@ import {
 })
 export default class ModeKey extends Vue {
   @Prop() element!: ModeKeyElement;
+  @Prop() pageSetup!: PageSetup;
   ModeSign = ModeSign;
 
   get hasFthora() {
@@ -78,8 +81,10 @@ export default class ModeKey extends Vue {
   get style() {
     return {
       color: this.element.color,
-      fontSize: this.element.fontSize + 'px',
+      fontSize: withZoom(this.element.fontSize),
       textAlign: this.element.alignment,
+      width: withZoom(this.pageSetup.innerPageWidth),
+      height: withZoom(this.element.height),
     } as CSSStyleDeclaration;
   }
 
@@ -89,8 +94,10 @@ export default class ModeKey extends Vue {
     const adjustments = getFthoraAdjustments(fthora);
 
     if (adjustments) {
-      const adjustment = adjustments.find((x) =>
-        x.isPairedWith.includes(this.element.note!),
+      const adjustment = adjustments.find(
+        (x) =>
+          x.isPairedWith.includes(this.element.note!) ||
+          x.isPairedWith.includes(this.element.quantitativeNeumeRight!),
       );
 
       if (adjustment) {
@@ -145,8 +152,8 @@ export default class ModeKey extends Vue {
 
 <style scoped>
 .mode-key-container {
-  width: 624px;
   border: 1px dotted black;
   box-sizing: border-box;
+  user-select: none;
 }
 </style>
